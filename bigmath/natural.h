@@ -5,23 +5,21 @@
 namespace bigmath {
 
 struct raw_natural {
-  uint32_t places_count;
-  uint32_t places_capacity;
-  uint64_t places[0];
+  u32 places_count;
+  u32 places_capacity;
+  u64 places[0];
 };
 
 template <typename Allocator>
 struct natural : raw_natural {};
 
 struct place128_t {
-  uint64_t p0, p1;
+  u64 p0, p1;
 };
 
 template <typename Allocator>
-inline natural<Allocator>* nat_new(uint64_t value,
-                                   uint64_t places_capacity = 4) {
-  uint64_t size =
-      sizeof(natural<Allocator>) + sizeof(uint64_t) * places_capacity;
+inline natural<Allocator>* nat_new(u64 value, u32 places_capacity = 4) {
+  u64 size = sizeof(natural<Allocator>) + sizeof(u64) * places_capacity;
   natural<Allocator>* nat =
       static_cast<natural<Allocator>*>(Allocator::alloc(size));
 
@@ -32,10 +30,8 @@ inline natural<Allocator>* nat_new(uint64_t value,
 }
 
 template <typename Allocator>
-inline natural<Allocator>* nat_new(place128_t places,
-                                   uint64_t places_capacity = 4) {
-  uint64_t size =
-      sizeof(natural<Allocator>) + sizeof(uint64_t) * places_capacity;
+inline natural<Allocator>* nat_new(place128_t places, u32 places_capacity = 4) {
+  u64 size = sizeof(natural<Allocator>) + sizeof(u64) * places_capacity;
   natural<Allocator>* nat =
       static_cast<natural<Allocator>*>(Allocator::alloc(size));
 
@@ -53,25 +49,24 @@ inline void nat_free(natural<Allocator>* nat) {
 
 template <typename Allocator>
 inline natural<Allocator>* nat_reserve(natural<Allocator>* nat,
-                                       uint64_t required_capacity) {
-  uint64_t capacity = nat->places_capacity;
+                                       u32 required_capacity) {
+  u32 capacity = nat->places_capacity;
   if (capacity >= required_capacity) {
     return nat;
   }
 
   // next power of two
-  capacity = 1lu << (64lu - __builtin_clzl(required_capacity - 1));
+  capacity = 1u << (32u - __builtin_clz(required_capacity - 1));
 
   nat = static_cast<natural<Allocator>*>(Allocator::realloc(
-      nat, sizeof(natural<Allocator>) + sizeof(uint64_t) * capacity));
+      nat, sizeof(natural<Allocator>) + sizeof(u64) * capacity));
   nat->places_capacity = capacity;
   return nat;
 }
 
 // result += word
 template <typename Allocator>
-inline natural<Allocator>* nat_add_word(natural<Allocator>* result,
-                                        uint64_t word) {
+inline natural<Allocator>* nat_add_word(natural<Allocator>* result, u64 word) {
   result = nat_reserve<Allocator>(result, result->places_count + 1);
 
   result->places_count =
@@ -83,9 +78,9 @@ inline natural<Allocator>* nat_add_word(natural<Allocator>* result,
 template <typename Allocator>
 inline natural<Allocator>* nat_add_nat(natural<Allocator>* result,
                                        const raw_natural* other) {
-  uint64_t max_count = result->places_count > other->places_count
-                           ? result->places_count
-                           : other->places_count;
+  u64 max_count = result->places_count > other->places_count
+                      ? result->places_count
+                      : other->places_count;
 
   result = nat_reserve(result, max_count + 1);
 

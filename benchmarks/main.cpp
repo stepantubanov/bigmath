@@ -3,20 +3,20 @@
 #include <string.h>
 
 struct HeapAllocator {
-  static inline void* alloc(uint64_t size) { return ::malloc(size); }
-  static inline void* realloc(void* ptr, uint64_t size) {
+  static inline void* alloc(u64 size) { return ::malloc(size); }
+  static inline void* realloc(void* ptr, u64 size) {
     return ::realloc(ptr, size);
   }
   static inline void free(void* ptr) { ::free(ptr); }
 };
 
-bigmath::natural<HeapAllocator>* make_nat(uint64_t size) {
-  const uint64_t reserved = 16;
+bigmath::natural<HeapAllocator>* make_nat(u64 size) {
+  const u64 reserved = 16;
 
   auto nat = bigmath::nat_new<HeapAllocator>(0ul, size + reserved);
   nat->places_count = size;
 
-  for (uint32_t i = 0; i < size; ++i) {
+  for (u64 i = 0; i < size; ++i) {
     if (i % 7 == 0)
       nat->places[i] = ~0ul;
     else
@@ -27,18 +27,18 @@ bigmath::natural<HeapAllocator>* make_nat(uint64_t size) {
 }
 
 static void nat_add_word(benchmark::State& state) {
-  const uint32_t words_count = 8;
+  const u64 words_count = 8;
 
-  uint64_t words[words_count];
-  for (uint64_t i = 0; i < words_count; ++i) {
+  u64 words[words_count];
+  for (u64 i = 0; i < words_count; ++i) {
     words[i] = (i % 4 == 0) ? ~0ul : i;
   }
 
-  uint64_t offset = 0;
+  u64 offset = 0;
   auto a = make_nat(state.range(0));
 
   for (auto _ : state) {
-    for (uint64_t i = 0; i < words_count; ++i)
+    for (u64 i = 0; i < words_count; ++i)
       a = bigmath::nat_add_word(a, words[(offset + i) & (words_count - 1)]);
     offset++;
   }

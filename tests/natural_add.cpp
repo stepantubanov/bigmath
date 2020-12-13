@@ -11,7 +11,7 @@ struct HeapAllocator {
 };
 
 TEST_CASE("natural addition") {
-  const uint64_t max_place_value = 0xFFFF'FFFF'FFFF'FFFFul;
+  const uint64_t max_place_value = 0xFFFF'FFFF'FFFF'FFFFlu;
   auto nat = bigmath::nat_new<HeapAllocator>(0);
 
   SECTION("add word") {
