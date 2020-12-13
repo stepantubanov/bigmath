@@ -53,14 +53,14 @@ inline void nat_free(natural<Allocator>* nat) {
 
 template <typename Allocator>
 inline natural<Allocator>* nat_reserve(natural<Allocator>* nat,
-                                       uint64_t places_capacity) {
+                                       uint64_t required_capacity) {
   uint64_t capacity = nat->places_capacity;
-  if (capacity >= places_capacity) {
+  if (capacity >= required_capacity) {
     return nat;
   }
 
   // next power of two
-  capacity = 1lu << (64lu - __builtin_clzl(places_capacity - 1));
+  capacity = 1lu << (64lu - __builtin_clzl(required_capacity - 1));
 
   nat = static_cast<natural<Allocator>*>(Allocator::realloc(
       nat, sizeof(natural<Allocator>) + sizeof(uint64_t) * capacity));

@@ -1,15 +1,30 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(bigmath LANGUAGES CXX VERSION 0.0.1)
+project(bigmath LANGUAGES CXX ASM VERSION 0.0.1)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-set(CMAKE_LINKER_FLAGS_DEBUG"${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=address")
+set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fsanitize=address")
+set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -x assembler-with-cpp")
+
+# Detect capabilities.
+
+set(BIGMATH_CONFIGURATIONS "")
+
+if(NOT MSVC)
+  list(APPEND BIGMATH_CONFIGURATIONS builtin_int128)
+  list(APPEND BIGMATH_CONFIGURATIONS builtin_overflow)
+endif()
+list(APPEND BIGMATH_CONFIGURATIONS asm_x86_64)
+
+list(GET BIGMATH_CONFIGURATIONS 0 BIGMATH_CONFIGURATION)
 
 # Library
 
-file(GLOB BIGMATH_SRC "bigmath/*.cpp")
+string(TOUPPER ${BIGMATH_CONFIGURATION} BIGMATH_CONFIGURATION_UPPER)
+set(BIGMATH_DEFINITIONS "BIGMATH_${BIGMATH_CONFIGURATION_UPPER}=1")
+file(GLOB BIGMATH_SRC "bigmath/*.cpp" "bigmath/*.s")
 add_library(bigmath STATIC ${BIGMATH_SRC})
-target_compile_definitions(bigmath PRIVATE BIGMATH_BUILTIN=1)
+target_compile_definitions(bigmath PRIVATE ${BIGMATH_DEFINITIONS})
 
 # Tests
 
@@ -25,11 +40,14 @@ target_include_directories(tests PRIVATE ".")
 
 file(GLOB BENCHMARKS_SRC "benchmarks/*.cpp")
 find_package(benchmark CONFIG REQUIRED)
-add_executable(benchmarks-builtin ${BIGMATH_SRC} ${BENCHMARKS_SRC})
-target_compile_definitions(benchmarks-builtin PRIVATE BIGMATH_BUILTIN=1
-  BIGMATH_BENCHMARKS_NAME=builtin)
-target_link_libraries(benchmarks-builtin benchmark::benchmark)
-target_include_directories(benchmarks-builtin PRIVATE ".")
 
-# BUILTIN    => __builtin_uaddl_overflow or uint128_t
-# ASM_x86_64 => hand-written in asm
+foreach(configuration IN LISTS BIGMATH_CONFIGURATIONS)
+  string(TOUPPER ${configuration} configuration_uppercase)
+
+  add_executable(benchmark_${configuration} ${BIGMATH_SRC} ${BENCHMARKS_SRC})
+  target_compile_definitions(benchmark_${configuration} PRIVATE
+    BIGMATH_${configuration_uppercase}=1
+    BIGMATH_CONFIGURATION=${configuration})
+  target_link_libraries(benchmark_${configuration} benchmark::benchmark)
+  target_include_directories(benchmark_${configuration} PRIVATE ".")
+endforeach()

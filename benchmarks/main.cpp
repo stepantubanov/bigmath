@@ -11,8 +11,9 @@ struct HeapAllocator {
 };
 
 bigmath::natural<HeapAllocator>* make_nat(uint64_t size) {
-  auto nat = bigmath::nat_new<HeapAllocator>(0ul);
-  nat = bigmath::nat_reserve<HeapAllocator>(nat, size);
+  const uint64_t reserved = 16;
+
+  auto nat = bigmath::nat_new<HeapAllocator>(0ul, size + reserved);
   nat->places_count = size;
 
   for (uint32_t i = 0; i < size; ++i) {
@@ -26,12 +27,20 @@ bigmath::natural<HeapAllocator>* make_nat(uint64_t size) {
 }
 
 static void nat_add_word(benchmark::State& state) {
+  const uint32_t words_count = 8;
+
+  uint64_t words[words_count];
+  for (uint64_t i = 0; i < words_count; ++i) {
+    words[i] = (i % 4 == 0) ? ~0ul : i;
+  }
+
+  uint64_t offset = 0;
   auto a = make_nat(state.range(0));
 
   for (auto _ : state) {
-    a = bigmath::nat_add_word(a, 3ul);
-    a = bigmath::nat_add_word(a, ~0ul);
-    benchmark::DoNotOptimize(a->places[a->places_count - 1]);
+    for (uint64_t i = 0; i < words_count; ++i)
+      a = bigmath::nat_add_word(a, words[(offset + i) & (words_count - 1)]);
+    offset++;
   }
 
   state.counters["value"] = a->places[a->places_count - 1];
