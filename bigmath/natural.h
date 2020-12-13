@@ -60,7 +60,7 @@ inline natural<Allocator>* nat_reserve(natural<Allocator>* nat,
   }
 
   // next power of two
-  capacity = 1lu << (64lu - __builtin_clzl(capacity - 1));
+  capacity = 1lu << (64lu - __builtin_clzl(places_capacity - 1));
 
   nat = static_cast<natural<Allocator>*>(Allocator::realloc(
       nat, sizeof(natural<Allocator>) + sizeof(uint64_t) * capacity));

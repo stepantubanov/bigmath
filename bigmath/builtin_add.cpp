@@ -19,6 +19,7 @@ uint64_t add_word(uint64_t* nat, uint64_t nat_size, uint64_t word) {
   nat[nat_size] = 1;
   return nat_size + 1;
 }
+#include <stdio.h>
 
 uint64_t add_nat(uint64_t* nat, uint64_t nat_size, const uint64_t* other,
                  uint64_t other_size) {
