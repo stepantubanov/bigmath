@@ -37,13 +37,16 @@ static void nat_add_word(benchmark::State& state) {
   u64 offset = 0;
   auto a = make_nat(state.range(0));
 
+  u32 places_count = a->places_count;
+
   for (auto _ : state) {
     for (u64 i = 0; i < words_count; ++i)
       a = bigmath::nat_add_word(a, words[(offset + i) & (words_count - 1)]);
+    a->places_count = places_count;
+
     offset++;
   }
 
-  state.counters["value"] = a->places[a->places_count - 1];
   bigmath::nat_free(a);
 }
 
@@ -51,17 +54,39 @@ static void nat_add_nat(benchmark::State& state) {
   auto a = make_nat(state.range(0));
   auto b = make_nat(state.range(0));
 
+  u32 places_count = a->places_count;
+
   for (auto _ : state) {
     a = bigmath::nat_add_nat(a, b);
-    benchmark::DoNotOptimize(a->places[a->places_count - 1]);
-  }
+    benchmark::DoNotOptimize(a->places[places_count - 1]);
 
-  state.counters["value"] = a->places[a->places_count - 1];
+    a->places_count = places_count;
+  }
 
   bigmath::nat_free(a);
   bigmath::nat_free(b);
 }
 
-BENCHMARK(nat_add_word)->Range(2, 100);
-BENCHMARK(nat_add_nat)->Range(2, 4000);
+static void nat_add_nat_diff(benchmark::State& state) {
+  const u64 base_size = 24;
+
+  auto a = make_nat(base_size);
+  auto b = make_nat(base_size + state.range(0));
+
+  a = bigmath::nat_reserve(a, base_size + state.range(0) + 32);
+
+  for (auto _ : state) {
+    a = bigmath::nat_add_nat(a, b);
+    benchmark::DoNotOptimize(a->places[a->places_count - 1]);
+
+    a->places_count = base_size;
+  }
+
+  bigmath::nat_free(a);
+  bigmath::nat_free(b);
+}
+
+BENCHMARK(nat_add_word)->Range(2, 50);
+BENCHMARK(nat_add_nat)->Range(2, 2000);
+BENCHMARK(nat_add_nat_diff)->Range(2, 2000);
 BENCHMARK_MAIN();

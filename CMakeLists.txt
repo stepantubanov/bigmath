@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.19)
 
 project(bigmath LANGUAGES CXX ASM VERSION 0.0.1)
 
@@ -6,16 +6,17 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fsanitize=address")
 set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -x assembler-with-cpp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
 
 # Detect capabilities.
 
 set(BIGMATH_CONFIGURATIONS "")
 
+list(APPEND BIGMATH_CONFIGURATIONS asm_x86_64)
 if(NOT MSVC)
   list(APPEND BIGMATH_CONFIGURATIONS builtin_int128)
-  list(APPEND BIGMATH_CONFIGURATIONS builtin_overflow)
+  #list(APPEND BIGMATH_CONFIGURATIONS builtin_overflow)
 endif()
-list(APPEND BIGMATH_CONFIGURATIONS asm_x86_64)
 
 list(GET BIGMATH_CONFIGURATIONS 0 BIGMATH_CONFIGURATION)
 

@@ -23,13 +23,21 @@ u64 add_word(u64* nat, u64 nat_size, u64 word) {
 }
 
 u64 add_nat(u64* nat, u64 nat_size, const u64* other, u64 other_size) {
-  u64 carry = 0;
-  u64 nat_value;
+  u64 min_size, max_size;
+  const u64* nat_max;
 
-  u64 min_size = nat_size < other_size ? nat_size : other_size;
-  u64 max_size = nat_size < other_size ? other_size : nat_size;
+  if (nat_size < other_size) {
+    min_size = nat_size;
+    max_size = other_size;
+    nat_max = other;
+  } else {
+    min_size = other_size;
+    max_size = nat_size;
+    nat_max = nat;
+  }
 
-  for (u64 i = 0; i < min_size; ++i) {
+  u64 carry = 0, i = 0;
+  for (; i < min_size; ++i) {
     u64 a = nat[i];
     u64 b = other[i];
 
@@ -39,18 +47,29 @@ u64 add_nat(u64* nat, u64 nat_size, const u64* other, u64 other_size) {
     carry = c0 + c1;
   }
 
-  for (u64 i = min_size; i < max_size; ++i) {
-    u64 a = i < nat_size ? nat[i] : 0;
-    u64 b = i < other_size ? other[i] : 0;
+  if (carry) {
+    for (;;) {
+      if (__builtin_expect(i == max_size, 0)) {
+        nat[i] = 1;
+        return max_size + 1;
+      }
 
-    u64 c0 = __builtin_uaddl_overflow(a, carry, &a);
-    u64 c1 = __builtin_uaddl_overflow(a, b, &nat[i]);
+      u64 v = nat_max[i] + 1;
+      nat[i] = v;
+      ++i;
 
-    carry = c0 + c1;
+      if (__builtin_expect(v != 0, 1)) {
+        carry = 0;
+        break;
+      }
+    }
   }
 
-  nat[max_size] = carry;
-  return carry > 0 ? max_size + 1 : max_size;
+  for (; i < max_size; ++i) {
+    nat[i] = nat_max[i];
+  }
+
+  return max_size;
 }
 
 #endif
@@ -77,13 +96,21 @@ u64 add_word(u64* nat, u64 nat_size, u64 word) {
 }
 
 u64 add_nat(u64* nat, u64 nat_size, const u64* other, u64 other_size) {
-  u64 carry = 0;
-  u64 nat_value;
+  u64 min_size, max_size;
+  const u64* nat_max;
 
-  u64 min_size = nat_size < other_size ? nat_size : other_size;
-  u64 max_size = nat_size < other_size ? other_size : nat_size;
+  if (nat_size < other_size) {
+    min_size = nat_size;
+    max_size = other_size;
+    nat_max = other;
+  } else {
+    min_size = other_size;
+    max_size = nat_size;
+    nat_max = nat;
+  }
 
-  for (u64 i = 0; i < min_size; ++i) {
+  u64 carry = 0, i = 0;
+  for (; i < min_size; ++i) {
     u64 a = nat[i];
     u64 b = other[i];
 
@@ -92,13 +119,26 @@ u64 add_nat(u64* nat, u64 nat_size, const u64* other, u64 other_size) {
     carry = u64(sum >> 64);
   }
 
-  for (u64 i = min_size; i < max_size; ++i) {
-    u64 a = i < nat_size ? nat[i] : 0;
-    u64 b = i < other_size ? other[i] : 0;
+  if (carry) {
+    for (;;) {
+      if (__builtin_expect(i == max_size, 0)) {
+        nat[i] = 1;
+        return max_size + 1;
+      }
 
-    __uint128_t sum = __uint128_t(a) + b + carry;
-    nat[i] = u64(sum);
-    carry = u64(sum >> 64);
+      u64 v = nat_max[i] + 1;
+      nat[i] = v;
+      ++i;
+
+      if (__builtin_expect(v != 0, 1)) {
+        carry = 0;
+        break;
+      }
+    }
+  }
+
+  for (; i < max_size; ++i) {
+    nat[i] = nat_max[i];
   }
 
   nat[max_size] = carry;
