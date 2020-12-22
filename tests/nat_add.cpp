@@ -36,16 +36,6 @@ TEST_CASE("natural addition") {
   }
 
   SECTION("add nat") {
-    // TODO:
-    //   + implement test cases listed below.
-    //   + ensure asm, builting int128 & overflow pass all the tests.
-    //   + improve benchmark coverage (small + big, big + small, etc).
-    //   - run benchmarks on both Zen2 & Intel machines.
-    //   - tool to compare benchmark results.
-    //   + try a few optimizations & variations.
-    //     + replacing loop with dec & jz.
-    //     + comment out unroll-4 version of the min loop.
-
     auto other = bigmath::nat_new<HeapAllocator>({3, 1});
 
     // add with no overflow

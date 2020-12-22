@@ -177,19 +177,21 @@ BIGMATH_INTERNAL_ADD_NAT:
 BIGMATH_INTERNAL_ADD_NAT:
   push rbp
   mov rbp, rsp
-  mov [rsp-8], rbx
 
-  xor rbx, rbx
+  sub rdx, rdi
+
+  xor r8, r8
   mov rax, rsi
   cmp rcx, rsi
-  cmovb rax, rcx    # rax = min_size
-  setbe bl          # big+small or equal size
-  mov [rsp-16], rbx
+  cmovb rax, rcx      # rax = min_size
+  setbe r8b           # big+small or equal size
+  mov [rsp-8], rbx
+  mov [rsp-16], r8
 
-  mov r8, [rdx]
-  mov r9, [rdx+8]
-  mov r10, [rdx+16]
-  mov r11, [rdx+24]
+  mov r8, [rdi+rdx]
+  mov r9, [rdi+rdx+8]
+  mov r10, [rdi+rdx+16]
+  mov r11, [rdi+rdx+24]
 
   mov rbx, rax
   shr rax, 2
@@ -203,27 +205,30 @@ BIGMATH_INTERNAL_ADD_NAT:
   adc [rdi+8], r9
   adc [rdi+16], r10
   adc [rdi+24], r11
-  mov r8, [rdx+32]
-  mov r9, [rdx+40]
-  mov r10, [rdx+48]
-  mov r11, [rdx+56]
+  mov r8, [rdi+rdx+32]
+  mov r9, [rdi+rdx+40]
+  mov r10, [rdi+rdx+48]
+  mov r11, [rdi+rdx+56]
   lea rdi, [rdi+32]
-  lea rdx, [rdx+32]
   dec rax
   jnz .add_nat_min_loop4
 
 .add_nat_min_loop1:
+  mov rax, rbx
   dec rbx
   js .add_nat_after_min_loop
-  lea rdx, [rdx+8]
   adc [rdi], r8
-  lea rdi, [rdi+8]
-  mov r8, [rdx]
-  jmp .add_nat_min_loop1
+  dec rbx
+  js .add_nat_after_min_loop
+  adc [rdi+8], r9
+  dec rbx
+  js .add_nat_after_min_loop
+  adc [rdi+16], r10
 
 .add_nat_after_min_loop:
-  dec qword ptr [rsp-16]
   mov rbx, [rsp-8]
+  dec qword ptr [rsp-16]
+  lea rdi, [rdi+rax*8]
 
   jnz .add_nat_small_big
 
@@ -258,9 +263,21 @@ BIGMATH_INTERNAL_ADD_NAT:
   sub rcx, rsi
 
 .add_nat_small_big_copy:
-  mov rsi, rdx
-  rep movsq
+  lea rcx, [rcx-4]
 
+  movups xmm0, [rdi+rdx]
+  movups xmm1, [rdi+rdx+16]
+  movups [rdi], xmm0
+  movups [rdi+16], xmm1
+
+  lea rdi, [rdi+32]
+  lea rsi, [rdi+rdx]
+
+  test rcx, rcx
+  jle .add_nat_skip_rep_mov
+
+  rep movsq
+.add_nat_skip_rep_mov:
   pop rbp
   ret
 
@@ -269,11 +286,10 @@ BIGMATH_INTERNAL_ADD_NAT:
 .add_nat_small_big_carry_loop:
   dec rcx
   js .add_nat_carry_exit
-  mov rsi, [rdx]
+  mov rsi, [rdi+rdx]
   inc rsi
   mov [rdi], rsi
   lea rdi, [rdi+8]
-  lea rdx, [rdx+8]
   jz .add_nat_small_big_carry_loop
   jmp .add_nat_small_big_copy
 

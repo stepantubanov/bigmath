@@ -4,6 +4,9 @@
 
 namespace bigmath {
 
+// TODO: Replace "place" with a "place_t" and make it
+// 256-bit in size?
+
 struct raw_natural {
   u32 places_count;
   u32 places_capacity;  // always >= places_count + 2
