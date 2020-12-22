@@ -1,0 +1,82 @@
+#!/usr/bin/env ruby
+
+require "rbconfig"
+require "json"
+
+BENCHMARK_RUNS=2
+BENCHMARK_REPETITIONS=2
+
+regexp     = /benchmark_(.+)/
+machine_id = File.read(".benchmark-machine-id").strip
+benchmarks = Dir.entries("build").map { |path| path[regexp, 1] }.compact
+
+if benchmarks.empty?
+  abort("No benchmark executables found in 'build' folder")
+end
+
+def detect_cpu
+  case RbConfig::CONFIG["host_os"]
+  when /darwin|mac os/
+    `sysctl -n machdep.cpu.brand_string`
+  else
+    raise "detect_cpu: not implemented"
+  end
+end
+
+cpu = detect_cpu
+puts "CPU: #{cpu}"
+
+all_results = {}
+
+BENCHMARK_RUNS.times do
+  benchmarks.each do |benchmark|
+    puts "Running #{benchmark}..."
+    json = JSON.parse(
+      `build/benchmark_#{benchmark} --benchmark_format=json --benchmark_repetitions=3`
+    )
+
+    all_results[benchmark] ||= {}
+
+    benchmark_results = all_results[benchmark]
+    json["benchmarks"].each do |repetition|
+      next if repetition["run_type"] != "iteration"
+      next unless repetition["repetition_index"]
+
+      name = repetition["run_name"]
+      benchmark_results[name] ||= []
+      benchmark_results[name] << repetition["real_time"]
+    end
+  end
+end
+
+benchmarks.each do |benchmark|
+  output = File.open("benchmarks/data/#{machine_id}_#{benchmark}.txt", "w")
+  output.write("Date: #{Time.now.to_s}\n\n")
+
+  output.write("Aggregate (min/median/max):\n\n")
+
+  all_results[benchmark].each do |run_name, run_times|
+    run_times.map!(&:round)
+    run_times.sort!
+
+    size = run_times.size
+
+    min = run_times.first.to_s
+    med = (size % 2 == 0 ? run_times[size/2] : 0.5 * (run_times[size/2-1] + run_times[size/2])).round.to_s
+    max = run_times.last.to_s
+    run_times = run_times.join("  ")
+
+    output.write("#{run_name.ljust(25)}#{min.rjust(5)}#{med.rjust(5)}#{max.rjust(5)}\n\n")
+  end
+
+  output.write("\n\nRepetitions:\n\n")
+  all_results[benchmark].each do |run_name, run_times|
+    run_times = run_times.join("  ")
+
+    output.write("#{run_name.ljust(25)} #{run_times}\n")
+  end
+
+  output.close
+end
+
+puts "Done"

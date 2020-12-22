@@ -71,8 +71,10 @@ u64 add_nat(u64* nat, u64 nat_size, const u64* other, u64 other_size) {
     }
   }
 
-  for (; i < max_size; ++i) {
-    nat[i] = nat_max[i];
+  if (nat != nat_max) {
+    for (; i < max_size; ++i) {
+      nat[i] = nat_max[i];
+    }
   }
 
   nat[max_size] = carry;

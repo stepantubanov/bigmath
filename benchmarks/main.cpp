@@ -54,40 +54,32 @@ static void nat_add_word(benchmark::State& state) {
 }
 
 static void nat_add_nat(benchmark::State& state) {
-  auto a = make_nat(state.range(0));
-  auto b = make_nat(state.range(0));
+  u32 size0 = state.range(0);
+  u32 size1 = state.range(1);
+  u32 max_size = size0 > size1 ? size0 : size1;
 
-  u32 places_count = a->places_count;
-
-  for (auto _ : state) {
-    a = bigmath::nat_add_nat(a, b);
-    benchmark::DoNotOptimize(a->places[places_count - 1]);
-
-    a->places_count = places_count;
-  }
-
-  bigmath::nat_free(a);
-  bigmath::nat_free(b);
-}
-
-static void nat_add_nat_diff(benchmark::State& state) {
-  const u64 base_size = 24;
-
-  auto a = make_nat(base_size, base_size + state.range(0) + 4);
-  auto b = make_nat(base_size + state.range(0));
+  auto a = make_nat(size0, max_size + 4);
+  auto b = make_nat(size1, max_size + 4);
 
   for (auto _ : state) {
     a = bigmath::nat_add_nat(a, b);
     benchmark::DoNotOptimize(a->places[a->places_count - 1]);
 
-    a->places_count = base_size;
+    a->places_count = size0;
   }
 
   bigmath::nat_free(a);
   bigmath::nat_free(b);
 }
 
-BENCHMARK(nat_add_word)->Range(2, 50);
-BENCHMARK(nat_add_nat)->Range(2, 2000);
-BENCHMARK(nat_add_nat_diff)->Range(2, 2000);
+BENCHMARK(nat_add_word)->Arg(2)->Arg(100);
+BENCHMARK(nat_add_nat)
+    ->Args({2, 2})
+    ->Args({32, 32})
+    ->Args({500, 500})
+    ->Args({2000, 2000})
+    ->Args({2, 5})
+    ->Args({2, 60})
+    ->Args({100, 2000})
+    ->Args({2000, 100});
 BENCHMARK_MAIN();

@@ -263,14 +263,6 @@ BIGMATH_INTERNAL_ADD_NAT:
   sub rcx, rsi
 
 .add_nat_small_big_copy:
-  lea rcx, [rcx-4]
-
-  movups xmm0, [rdi+rdx]
-  movups xmm1, [rdi+rdx+16]
-  movups [rdi], xmm0
-  movups [rdi+16], xmm1
-
-  lea rdi, [rdi+32]
   lea rsi, [rdi+rdx]
 
   test rcx, rcx
