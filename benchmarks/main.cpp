@@ -5,15 +5,18 @@
 struct HeapAllocator {
   static inline void* alloc(u64 size) { return ::malloc(size); }
   static inline void* realloc(void* ptr, u64 size) {
+    throw "Should not realloc during benchmark";
     return ::realloc(ptr, size);
   }
   static inline void free(void* ptr) { ::free(ptr); }
 };
 
-bigmath::natural<HeapAllocator>* make_nat(u64 size) {
-  const u64 reserved = 16;
+bigmath::natural<HeapAllocator>* make_nat(u64 size, u32 reserved = 0) {
+  if (!reserved) {
+    reserved = size + 4;
+  }
 
-  auto nat = bigmath::nat_new<HeapAllocator>(0ul, size + reserved);
+  auto nat = bigmath::nat_new<HeapAllocator>(0ul, reserved);
   nat->places_count = size;
 
   for (u64 i = 0; i < size; ++i) {
@@ -70,10 +73,8 @@ static void nat_add_nat(benchmark::State& state) {
 static void nat_add_nat_diff(benchmark::State& state) {
   const u64 base_size = 24;
 
-  auto a = make_nat(base_size);
+  auto a = make_nat(base_size, base_size + state.range(0) + 4);
   auto b = make_nat(base_size + state.range(0));
-
-  a = bigmath::nat_reserve(a, base_size + state.range(0) + 32);
 
   for (auto _ : state) {
     a = bigmath::nat_add_nat(a, b);

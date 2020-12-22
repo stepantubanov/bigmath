@@ -46,14 +46,18 @@ BIGMATH_INTERNAL_ADD_WORD:
   pop rbp
   ret
 
-/*
-  u64 add_nat(u64* nat, u64 nat_size, const u64* other, u64 other_size)
 
-  rdi: nat
-  rsi: nat_size (< 2**32)
-  rdx: other
-  rcx: other_size (< 2**32)
-*/
+#if 0
+
+#
+#  u64 add_nat(u64* nat, u64 nat_size,
+#              const u64* other, u64 other_size)
+#
+#  rdi: nat
+#  rsi: nat_size (< 32 bit)
+#  rdx: other
+#  rcx: other_size (< 32 bit)
+#
 BIGMATH_INTERNAL_ADD_NAT:
   push rbp
   mov rbp, rsp
@@ -158,5 +162,121 @@ BIGMATH_INTERNAL_ADD_NAT:
   inc rax
   pop rbp
   ret
+
+#else
+
+#
+#  u64 add_nat(u64* nat, u64 nat_size,
+#              const u64* other, u64 other_size)
+#
+#  rdi: nat
+#  rsi: nat_size (< 32 bit)
+#  rdx: other
+#  rcx: other_size (< 32 bit)
+#
+BIGMATH_INTERNAL_ADD_NAT:
+  push rbp
+  mov rbp, rsp
+  mov [rsp-8], rbx
+
+  xor rbx, rbx
+  mov rax, rsi
+  cmp rcx, rsi
+  cmovb rax, rcx    # rax = min_size
+  setbe bl          # big+small or equal size
+  mov [rsp-16], rbx
+
+  mov r8, [rdx]
+  mov r9, [rdx+8]
+  mov r10, [rdx+16]
+  mov r11, [rdx+24]
+
+  mov rbx, rax
+  shr rax, 2
+  and rbx, 3
+
+  test rax, rax         # check for zero and set CF=0
+  jz .add_nat_min_loop1
+
+.add_nat_min_loop4:
+  adc [rdi], r8
+  adc [rdi+8], r9
+  adc [rdi+16], r10
+  adc [rdi+24], r11
+  mov r8, [rdx+32]
+  mov r9, [rdx+40]
+  mov r10, [rdx+48]
+  mov r11, [rdx+56]
+  lea rdi, [rdi+32]
+  lea rdx, [rdx+32]
+  dec rax
+  jnz .add_nat_min_loop4
+
+.add_nat_min_loop1:
+  dec rbx
+  js .add_nat_after_min_loop
+  lea rdx, [rdx+8]
+  adc [rdi], r8
+  lea rdi, [rdi+8]
+  mov r8, [rdx]
+  jmp .add_nat_min_loop1
+
+.add_nat_after_min_loop:
+  dec qword ptr [rsp-16]
+  mov rbx, [rsp-8]
+
+  jnz .add_nat_small_big
+
+# --- Big + Small
+
+  mov rax, rsi
+  jc .add_nat_big_small_carry
+  pop rbp
+  ret
+
+.add_nat_big_small_carry:
+  sub rsi, rcx
+.add_nat_big_small_carry_loop:
+  dec rsi
+  js .add_nat_carry_exit
+  inc qword ptr [rdi]
+  lea rdi, [rdi+8]
+  jz .add_nat_big_small_carry_loop
+  pop rbp
+  ret
+.add_nat_carry_exit:
+  mov qword ptr [rdi], 1
+  inc rax
+  pop rbp
+  ret
+
+# --- Small + Big
+
+.add_nat_small_big:
+  mov rax, rcx
+  jc .add_nat_small_big_carry
+  sub rcx, rsi
+
+.add_nat_small_big_copy:
+  mov rsi, rdx
+  rep movsq
+
+  pop rbp
+  ret
+
+.add_nat_small_big_carry:
+  sub rcx, rsi
+.add_nat_small_big_carry_loop:
+  dec rcx
+  js .add_nat_carry_exit
+  mov rsi, [rdx]
+  inc rsi
+  mov [rdi], rsi
+  lea rdi, [rdi+8]
+  lea rdx, [rdx+8]
+  jz .add_nat_small_big_carry_loop
+  jmp .add_nat_small_big_copy
+
+#endif
 
 #endif
