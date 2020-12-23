@@ -11,19 +11,20 @@ struct HeapAllocator {
   static inline void free(void* ptr) { ::free(ptr); }
 };
 
-bigmath::natural<HeapAllocator>* make_nat(u64 size, u32 reserved = 0) {
-  if (!reserved) {
-    reserved = size + 4;
+bigmath::natural<HeapAllocator>* make_nat(u64 places_count,
+                                          u64 places_reserved = 0) {
+  if (places_reserved < places_count + 1) {
+    places_reserved = places_count + 1;
   }
 
-  auto nat = bigmath::nat_new<HeapAllocator>(0ul, reserved);
-  nat->places_count = size;
+  auto nat = bigmath::nat_new<HeapAllocator>({0, 0, 0, 0}, places_reserved);
+  nat->places_count = places_count;
 
-  for (u64 i = 0; i < size; ++i) {
+  for (u64 i = 0; i < bigmath::place_t::size * places_count; ++i) {
     if (i % 7 == 0)
-      nat->places[i] = ~0ul;
+      nat->words[i] = ~0ul;
     else
-      nat->places[i] = i;
+      nat->words[i] = i;
   }
 
   return nat;
@@ -58,8 +59,8 @@ static void nat_add_nat(benchmark::State& state) {
   u32 size1 = state.range(1);
   u32 max_size = size0 > size1 ? size0 : size1;
 
-  auto a = make_nat(size0, max_size + 4);
-  auto b = make_nat(size1, max_size + 4);
+  auto a = make_nat(size0, max_size + 1);
+  auto b = make_nat(size1, max_size + 1);
 
   for (auto _ : state) {
     a = bigmath::nat_add_nat(a, b);
@@ -74,12 +75,12 @@ static void nat_add_nat(benchmark::State& state) {
 
 BENCHMARK(nat_add_word)->Arg(2)->Arg(100);
 BENCHMARK(nat_add_nat)
-    ->Args({2, 2})
-    ->Args({32, 32})
+    ->Args({1, 1})
+    ->Args({8, 8})
+    ->Args({125, 125})
     ->Args({500, 500})
-    ->Args({2000, 2000})
-    ->Args({2, 5})
+    ->Args({1, 5})
     ->Args({2, 60})
-    ->Args({100, 2000})
-    ->Args({2000, 100});
+    ->Args({30, 500})
+    ->Args({500, 30});
 BENCHMARK_MAIN();

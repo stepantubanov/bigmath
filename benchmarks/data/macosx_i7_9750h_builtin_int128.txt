@@ -1,38 +1,38 @@
-Date: 2020-12-22 19:53:17 +0300
+Date: 2020-12-23 10:53:47 +0300
 
 Aggregate (min/median/max):
 
-nat_add_word/2              11   11   11
+nat_add_word/2              11   11   12
 
-nat_add_word/100            11   11   11
+nat_add_word/100            11   11   12
 
-nat_add_nat/2/2              5    5    5
+nat_add_nat/1/1              5    5    5
 
-nat_add_nat/32/32           17   17   19
+nat_add_nat/8/8             20   21   21
 
-nat_add_nat/500/500        262  268  284
+nat_add_nat/125/125        347  352  359
 
-nat_add_nat/2000/2000     1030 1038 1079
+nat_add_nat/500/500       1366 1379 1401
 
-nat_add_nat/2/5              6    6    6
+nat_add_nat/1/5              7    7    8
 
-nat_add_nat/2/60            12   12   14
+nat_add_nat/2/60            31   33   36
 
-nat_add_nat/100/2000       236  246  254
+nat_add_nat/30/500         253  265  271
 
-nat_add_nat/2000/100        54   54   55
+nat_add_nat/500/30          82   82   84
 
 
 
 Repetitions:
 
-nat_add_word/2            11  11  11  11  11  11
-nat_add_word/100          11  11  11  11  11  11
-nat_add_nat/2/2           5  5  5  5  5  5
-nat_add_nat/32/32         17  17  17  17  18  19
-nat_add_nat/500/500       262  263  267  268  274  284
-nat_add_nat/2000/2000     1030  1036  1037  1038  1045  1079
-nat_add_nat/2/5           6  6  6  6  6  6
-nat_add_nat/2/60          12  12  12  12  13  14
-nat_add_nat/100/2000      236  245  245  246  250  254
-nat_add_nat/2000/100      54  54  54  54  54  55
+nat_add_word/2            11  11  11  11  11  12
+nat_add_word/100          11  11  11  11  11  12
+nat_add_nat/1/1           5  5  5  5  5  5
+nat_add_nat/8/8           20  21  21  21  21  21
+nat_add_nat/125/125       347  347  348  352  353  359
+nat_add_nat/500/500       1366  1367  1370  1379  1398  1401
+nat_add_nat/1/5           7  7  7  7  7  8
+nat_add_nat/2/60          31  31  32  33  34  36
+nat_add_nat/30/500        253  256  256  265  268  271
+nat_add_nat/500/30        82  82  82  82  82  84

@@ -5,7 +5,9 @@ namespace internal {
 
 #ifdef BIGMATH_BUILTIN_INT128
 
-u64 add_word(u64* nat, u64 nat_size, u64 word) {
+u64 add_word(void* _nat, u64 nat_size, u64 word) {
+  u64* nat = (u64*)_nat;
+
   __uint128_t sum = __uint128_t(nat[0]) + word;
   nat[0] = u64(sum);
 
@@ -13,18 +15,25 @@ u64 add_word(u64* nat, u64 nat_size, u64 word) {
     return nat_size;
   }
 
-  for (u64 i = 1; i < nat_size; ++i) {
+  u64 i = 1;
+  for (; i < 4 * nat_size; ++i) {
     nat[i] += 1;
     if (__builtin_expect(nat[i] != 0, 1)) {
       return nat_size;
     }
   }
 
-  nat[nat_size] = 1;
+  nat[i + 0] = 1;
+  nat[i + 1] = 0;
+  nat[i + 2] = 0;
+  nat[i + 3] = 0;
   return nat_size + 1;
 }
 
-u64 add_nat(u64* nat, u64 nat_size, const u64* other, u64 other_size) {
+u64 add_nat(void* _nat, u64 nat_size, const void* _other, u64 other_size) {
+  u64* nat = (u64*)_nat;
+  u64* other = (u64*)_other;
+
   u64 min_size, max_size;
   const u64* nat_max;
 
@@ -41,13 +50,10 @@ u64 add_nat(u64* nat, u64 nat_size, const u64* other, u64 other_size) {
   u64 i = 0;
   u64 carry = 0;
 
-  for (; i < min_size; ++i) {
-    u64 a = nat[i];
-    u64 b = other[i];
-
-    auto sum = __uint128_t(a);
-    sum += b;
+  for (; i < 4 * min_size; ++i) {
+    auto sum = __uint128_t(nat[i]);
     sum += carry;
+    sum += other[i];
 
     nat[i] = u64(sum);
     carry = u64(sum >> 64);
@@ -55,8 +61,11 @@ u64 add_nat(u64* nat, u64 nat_size, const u64* other, u64 other_size) {
 
   if (carry) {
     for (;;) {
-      if (__builtin_expect(i == max_size, 0)) {
-        nat[i] = 1;
+      if (__builtin_expect(i == 4 * max_size, 0)) {
+        nat[i + 0] = 1;
+        nat[i + 1] = 0;
+        nat[i + 2] = 0;
+        nat[i + 3] = 0;
         return max_size + 1;
       }
 
@@ -72,13 +81,12 @@ u64 add_nat(u64* nat, u64 nat_size, const u64* other, u64 other_size) {
   }
 
   if (nat != nat_max) {
-    for (; i < max_size; ++i) {
+    for (; i < 4 * max_size; ++i) {
       nat[i] = nat_max[i];
     }
   }
 
-  nat[max_size] = carry;
-  return carry > 0 ? max_size + 1 : max_size;
+  return max_size;
 }
 
 #endif
