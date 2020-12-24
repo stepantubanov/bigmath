@@ -13,5 +13,6 @@ TEST_CASE("nat mul") {
 
     REQUIRE(Z{m, m, m, m} * 2 == Z{m - 1, m, m, m, 1});
     REQUIRE(Z{4, 0, 0, 4} * m == Z{m - 3, 3, 0, m - 3, 3});
+    REQUIRE(Z{m, m, m, m} * m == Z{1, m, m, m, m - 1});
   }
 }
