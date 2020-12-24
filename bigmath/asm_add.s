@@ -140,14 +140,24 @@ BIGMATH_INTERNAL_ADD_NAT:
   sub rcx, rsi
 
 .add_nat_small_big_copy:
+  jrcxz .add_nat_finish
+
+  cmp rcx, 4
+  jle .add_nat_avx_copy
+
   lea rsi, [rdi+rdx]
-
-  test rcx, rcx
-  jle .add_nat_skip_rep_mov
-
   shl rcx, 2
   rep movsq
-.add_nat_skip_rep_mov:
+.add_nat_finish:
+  pop rbp
+  ret
+
+.add_nat_avx_copy:
+  vmovups ymm0, [rdi+rdx]
+  vmovups [rdi], ymm0
+  dec rcx
+  jnz .add_nat_avx_copy
+  vzeroupper
   pop rbp
   ret
 
