@@ -1,5 +1,10 @@
 #pragma once
 
+#include <sstream>
+#include <string>
+
+#include "catch2.h"
+
 struct HeapAllocator {
   static inline void* alloc(uint64_t size) { return ::malloc(size); }
   static inline void* realloc(void* ptr, uint64_t size) {
@@ -33,6 +38,11 @@ struct Z {
                        : nat->places_count;
     auto result = bigmath::nat_clone(nat, max_size + 1);
     result = bigmath::nat_add_nat(result, other.nat);
+    return Z{result};
+  }
+
+  Z operator*(u64 word) const {
+    auto result = bigmath::nat_mul_word<HeapAllocator>(nullptr, nat, word);
     return Z{result};
   }
 

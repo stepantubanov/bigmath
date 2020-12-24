@@ -31,7 +31,9 @@ inline natural<Allocator>* nat_alloc(u32 places_capacity) {
 template <typename Allocator>
 inline natural<Allocator>* nat_ensure(natural<Allocator>* nat,
                                       u32 required_capacity) {
-  u32 capacity = nat->places_capacity;
+  // nat may be nullptr
+
+  u32 capacity = nat ? nat->places_capacity : 0;
   if (capacity >= required_capacity) {
     return nat;
   }
@@ -123,6 +125,18 @@ inline natural<Allocator>* nat_add_nat(natural<Allocator>* result,
 
   result->places_count = internal::add_nat(result->places, result->places_count,
                                            other->places, other->places_count);
+  return result;
+}
+
+// result = nat * word
+template <typename Allocator>
+inline natural<Allocator>* nat_mul_word(natural<Allocator>* result,
+                                        const raw_natural* nat, u64 word) {
+  // result argument may be nullptr
+  result = nat_ensure(result, nat->places_count + 1);
+
+  result->places_count =
+      internal::mul_word(result->places, nat->places, nat->places_count, word);
   return result;
 }
 

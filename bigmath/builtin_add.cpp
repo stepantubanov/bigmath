@@ -1,9 +1,9 @@
 #include "internal.h"
 
+#ifdef BIGMATH_BUILTIN_INT128
+
 namespace bigmath {
 namespace internal {
-
-#ifdef BIGMATH_BUILTIN_INT128
 
 u64 add_word(void* _nat, u64 nat_size, u64 word) {
   u64* nat = (u64*)_nat;
@@ -89,7 +89,7 @@ u64 add_nat(void* _nat, u64 nat_size, const void* _other, u64 other_size) {
   return max_size;
 }
 
-#endif
-
 }  // namespace internal
 }  // namespace bigmath
+
+#endif

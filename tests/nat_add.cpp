@@ -1,9 +1,5 @@
 #include <bigmath/natural.h>
 
-#include <sstream>
-#include <string>
-
-#include "catch2.h"
 #include "helper.h"
 
 TEST_CASE("nat add") {

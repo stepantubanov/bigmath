@@ -38,11 +38,10 @@ static void nat_add_word(benchmark::State& state) {
     words[i] = (i % 4 == 0) ? ~0ul : i;
   }
 
+  u32 places_count = state.range(0);
+  auto a = make_nat(places_count);
+
   u64 offset = 0;
-  auto a = make_nat(state.range(0));
-
-  u32 places_count = a->places_count;
-
   for (auto _ : state) {
     for (u64 i = 0; i < words_count; ++i)
       a = bigmath::nat_add_word(a, words[(offset + i) & (words_count - 1)]);
@@ -73,6 +72,28 @@ static void nat_add_nat(benchmark::State& state) {
   bigmath::nat_free(b);
 }
 
+static void nat_mul_word(benchmark::State& state) {
+  u32 places_count = state.range(0);
+  auto a = make_nat(places_count);
+  auto r = make_nat(places_count + 1);
+
+  const u64 words_count = 8;
+
+  u64 words[words_count];
+  for (u64 i = 0; i < words_count; ++i) {
+    words[i] = (i % 4 == 0) ? ~0ul : i;
+  }
+
+  u64 offset = 0;
+  for (auto _ : state) {
+    for (u64 i = 0; i < words_count; ++i)
+      r = bigmath::nat_mul_word(r, a, words[(offset + i) & (words_count - 1)]);
+    r->places_count = places_count;
+
+    offset++;
+  }
+}
+
 BENCHMARK(nat_add_word)->Arg(2)->Arg(100);
 BENCHMARK(nat_add_nat)
     ->Args({1, 1})
@@ -83,4 +104,5 @@ BENCHMARK(nat_add_nat)
     ->Args({2, 60})
     ->Args({30, 500})
     ->Args({500, 30});
+BENCHMARK(nat_mul_word)->Arg(2)->Arg(100);
 BENCHMARK_MAIN();
