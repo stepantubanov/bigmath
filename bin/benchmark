@@ -32,7 +32,7 @@ BENCHMARK_RUNS.times do
   benchmarks.each do |benchmark|
     puts "Running #{benchmark}..."
     json = JSON.parse(
-      `build/benchmark_#{benchmark} --benchmark_format=json --benchmark_repetitions=3`
+      `build/benchmark_#{benchmark} --benchmark_format=json --benchmark_repetitions=#{BENCHMARK_REPETITIONS}`
     )
 
     all_results[benchmark] ||= {}
@@ -66,7 +66,7 @@ benchmarks.each do |benchmark|
     max = run_times.last.to_s
     run_times = run_times.join("  ")
 
-    output.write("#{run_name.ljust(25)}#{min.rjust(5)}#{med.rjust(5)}#{max.rjust(5)}\n\n")
+    output.write("#{run_name.ljust(25)}#{min.rjust(7)}#{med.rjust(7)}#{max.rjust(7)}\n\n")
   end
 
   output.write("\n\nRepetitions:\n\n")

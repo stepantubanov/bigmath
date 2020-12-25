@@ -6,13 +6,15 @@
 
 #ifdef __clang__
 #define BIGMATH_INTERNAL_MUL_WORD __ZN7bigmath8internal8mul_wordEPvPKvmm
+#define BIGMATH_INTERNLA_MUL_NAT __ZN7bigmath8internal7mul_natEPvPKvmS3_m
 #else
 #define BIGMATH_INTERNAL_MUL_WORD _ZN7bigmath8internal8mul_wordEPvPKvmm
+#define BIGMATH_INTERNLA_MUL_NAT _ZN7bigmath8internal7mul_natEPvPKvmS3_m
 #endif
 
 #endif
 
-.global BIGMATH_INTERNAL_MUL_WORD
+.global BIGMATH_INTERNAL_MUL_WORD, BIGMATH_INTERNAL_MUL_NAT
 
 #
 #  u64 mul_word(void* _res, const void* _nat, u64 nat_size, u64 word)
@@ -59,11 +61,18 @@ BIGMATH_INTERNAL_MUL_WORD:
   ret
 
 .mul_word_carry:
-  inc rax
   mov qword ptr [rdi], r11
   mov qword ptr [rdi+8], 0
   mov qword ptr [rdi+16], 0
   mov qword ptr [rdi+24], 0
+  inc rax
+  pop rbp
+  ret
+
+BIGMATH_INTERNAL_MUL_NAT:
+  push rbp
+  mov rbp, rsp
+
   pop rbp
   ret
 

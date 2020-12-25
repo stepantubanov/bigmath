@@ -41,6 +41,11 @@ struct Z {
     return Z{result};
   }
 
+  Z operator*(const Z& other) const {
+    auto result = bigmath::nat_mul_nat<HeapAllocator>(nullptr, nat, other.nat);
+    return Z{result};
+  }
+
   Z operator*(u64 word) const {
     auto result = bigmath::nat_mul_word<HeapAllocator>(nullptr, nat, word);
     return Z{result};

@@ -134,9 +134,23 @@ inline natural<Allocator>* nat_mul_word(natural<Allocator>* result,
                                         const raw_natural* nat, u64 word) {
   // result argument may be nullptr
   result = nat_ensure(result, nat->places_count + 1);
+  result->places_count = nat->places_count;
 
   result->places_count =
       internal::mul_word(result->places, nat->places, nat->places_count, word);
+  return result;
+}
+
+template <typename Allocator>
+inline natural<Allocator>* nat_mul_nat(natural<Allocator>* result,
+                                       const raw_natural* a,
+                                       const raw_natural* b) {
+  // result argument may be nullptr
+  result = nat_ensure(result, a->places_count + b->places_count);
+  result->places_count = a->places_count + b->places_count;
+
+  result->places_count = internal::mul_nat(
+      result->places, a->places, a->places_count, b->places, b->places_count);
   return result;
 }
 

@@ -88,10 +88,24 @@ static void nat_mul_word(benchmark::State& state) {
   for (auto _ : state) {
     for (u64 i = 0; i < words_count; ++i)
       r = bigmath::nat_mul_word(r, a, words[(offset + i) & (words_count - 1)]);
-    r->places_count = places_count;
 
+    benchmark::DoNotOptimize(r->places[r->places_count - 1]);
     offset++;
   }
+}
+
+static void nat_mul_nat(benchmark::State& state) {
+  auto a = make_nat(state.range(0));
+  auto b = make_nat(state.range(1));
+  auto r = make_nat(state.range(0) + state.range(1));
+
+  for (auto _ : state) {
+    r = bigmath::nat_mul_nat(r, a, b);
+    benchmark::DoNotOptimize(r->places[r->places_count - 1]);
+  }
+
+  bigmath::nat_free(a);
+  bigmath::nat_free(b);
 }
 
 BENCHMARK(nat_add_word)->Arg(2)->Arg(100);
@@ -105,4 +119,9 @@ BENCHMARK(nat_add_nat)
     ->Args({30, 500})
     ->Args({500, 30});
 BENCHMARK(nat_mul_word)->Arg(2)->Arg(100);
+BENCHMARK(nat_mul_nat)
+    ->Args({1, 1})
+    ->Args({4, 4})
+    ->Args({15, 10})
+    ->Args({32, 32});  // 1 KiB x 1 KiB
 BENCHMARK_MAIN();
