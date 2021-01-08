@@ -9,17 +9,13 @@ u64 mul_word(void* _res, const void* _nat, u64 nat_size, u64 word) {
   u64* res = (u64*)_res;
   u64* nat = (u64*)_nat;
 
-  __uint128_t carry = 0;
+  u64 carry = 0;
   for (u64 i = 0; i < 4 * nat_size; ++i) {
-    __uint128_t m = nat[i];
-    m *= word;
+    __uint128_t t = __uint128_t(nat[i]) * word;
+    t += carry;
 
-    __uint128_t v = carry;
-    v += u64(m);
-    carry = u64(carry >> 64);
-
-    res[i] = u64(v);
-    carry += u64(m >> 64);
+    res[i] = u64(t);
+    carry = u64(t >> 64);
   }
 
   if (!carry) {
@@ -68,6 +64,66 @@ u64 mul_nat(void* _res, const void* _nat, u64 nat_size, const void* _other,
   u64 size = nat_size + other_size;
   return size;
 }
+
+/*
+u64 mul_nat(void* _res, const void* _nat, u64 nat_size, const void* _other,
+            u64 other_size) {
+  u64* res = (u64*)_res;
+  u64* nat = (u64*)_nat;
+  u64* other = (u64*)_other;
+
+  if (nat_size < other_size) {
+    u64* t = nat;
+    nat = other;
+    other = t;
+
+    u64 tt = nat_size;
+    nat_size = other_size;
+    other_size = tt;
+  }
+
+  nat_size *= 4;
+  other_size *= 4;
+
+  u64* other_end = other + other_size;
+
+  __uint128_t carry = 0;
+  u64 w = 0;
+
+  for (u64 i = 0; i < nat_size; ++i) {
+    for (u64 *a = nat + i, *b = other; a >= nat && b < other_end; --a, ++b) {
+      __uint128_t t = __uint128_t(*a) * (*b);
+      t += w;
+
+      w = u64(t);
+      carry += u64(t >> 64);
+    }
+
+    res[i] = w;
+
+    w = u64(carry);
+    carry = u64(carry >> 64);
+  }
+
+  for (u64 i = 1; i < other_size; ++i) {
+    for (u64 *a = nat + nat_size - 1, *b = other + i; b < other_end; --a, ++b) {
+      __uint128_t t = __uint128_t(*a) * (*b);
+      t += w;
+
+      w = u64(t);
+      carry += u64(t >> 64);
+    }
+
+    res[nat_size + i - 1] = w;
+
+    w = u64(carry);
+    carry = u64(carry >> 64);
+  }
+
+  res[nat_size + other_size - 1] = w;
+  return (nat_size + other_size) / 4;
+}
+*/
 
 }  // namespace internal
 }  // namespace bigmath

@@ -1,3 +1,5 @@
+#include <immintrin.h>
+
 #include "internal.h"
 
 #ifdef BIGMATH_BUILTIN_INT128
@@ -12,30 +14,33 @@ u64 add_word(void* _nat, u64 nat_size, u64 word) {
   nat[0] = u64(sum);
 
   if (__builtin_expect(u64(sum >> 64) == 0, 1)) {
-    return nat_size;
+    return 0;
   }
 
-  u64 i = 1;
-  for (; i < 4 * nat_size; ++i) {
-    nat[i] += 1;
+  nat_size = 4 * nat_size;
+
+  for (u32 i = 1; i < nat_size; ++i) {
+    nat[i]++;
     if (__builtin_expect(nat[i] != 0, 1)) {
-      return nat_size;
+      return 0;
     }
   }
 
-  nat[i + 0] = 1;
-  nat[i + 1] = 0;
-  nat[i + 2] = 0;
-  nat[i + 3] = 0;
-  return nat_size + 1;
+  nat[nat_size + 0] = 1;
+  nat[nat_size + 1] = 0;
+  nat[nat_size + 2] = 0;
+  nat[nat_size + 3] = 0;
+  return 1;
 }
 
 u64 add_nat(void* _nat, u64 nat_size, const void* _other, u64 other_size) {
+  using ull = unsigned long long;
+
   u64* nat = (u64*)_nat;
   u64* other = (u64*)_other;
+  u64* nat_max;
 
-  u64 min_size, max_size;
-  const u64* nat_max;
+  u32 min_size, max_size;
 
   if (nat_size < other_size) {
     min_size = nat_size;
@@ -47,46 +52,48 @@ u64 add_nat(void* _nat, u64 nat_size, const void* _other, u64 other_size) {
     nat_max = nat;
   }
 
-  u64 i = 0;
-  u64 carry = 0;
+  u32 i = 0;
+  bool carry = false;
 
-  for (; i < 4 * min_size; ++i) {
-    auto sum = __uint128_t(nat[i]);
-    sum += carry;
-    sum += other[i];
+  do {
+    u32 j = 4 * i;
 
-    nat[i] = u64(sum);
-    carry = u64(sum >> 64);
+    carry = _addcarry_u64(carry, nat[j + 0], other[j + 0], (ull*)&nat[j + 0]);
+    carry = _addcarry_u64(carry, nat[j + 1], other[j + 1], (ull*)&nat[j + 1]);
+    carry = _addcarry_u64(carry, nat[j + 2], other[j + 2], (ull*)&nat[j + 2]);
+    carry = _addcarry_u64(carry, nat[j + 3], other[j + 3], (ull*)&nat[j + 3]);
+
+    ++i;
+  } while (i < min_size);
+
+  while (carry) {
+    auto j = i * 4;
+
+    if (__builtin_expect(i == max_size, 0)) {
+      nat[j + 0] = 1;
+      nat[j + 1] = 0;
+      nat[j + 2] = 0;
+      nat[j + 3] = 0;
+      return 1;
+    }
+
+    bool c;
+    c = __builtin_uaddl_overflow(1, nat_max[j + 0], &nat[j + 0]);
+    c = _addcarry_u64(c, nat_max[j + 1], 0, (ull*)&nat[j + 1]);
+    c = _addcarry_u64(c, nat_max[j + 2], 0, (ull*)&nat[j + 2]);
+    c = _addcarry_u64(c, nat_max[j + 3], 0, (ull*)&nat[j + 3]);
+    ++i;
+
+    carry = c;
   }
 
-  if (carry) {
-    for (;;) {
-      if (__builtin_expect(i == 4 * max_size, 0)) {
-        nat[i + 0] = 1;
-        nat[i + 1] = 0;
-        nat[i + 2] = 0;
-        nat[i + 3] = 0;
-        return max_size + 1;
-      }
-
-      u64 v = nat_max[i] + 1;
-      nat[i] = v;
-      ++i;
-
-      if (__builtin_expect(v != 0, 1)) {
-        carry = 0;
-        break;
-      }
+  if (nat_max == other) {
+    for (u32 j = 4 * i, j_end = 4 * max_size; j < j_end; ++j) {
+      nat[j] = other[j];
     }
   }
 
-  if (nat != nat_max) {
-    for (; i < 4 * max_size; ++i) {
-      nat[i] = nat_max[i];
-    }
-  }
-
-  return max_size;
+  return 0;
 }
 
 }  // namespace internal

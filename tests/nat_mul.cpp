@@ -31,5 +31,9 @@ TEST_CASE("nat mul") {
     REQUIRE(Z{m, m, m, m} * Z{m, m, m, m} == Z{1, 0, 0, 0, m - 1, m, m, m});
     REQUIRE(Z{m, m, m, m, m, m} * Z{m, 0, m, m} ==
             Z{1, m, 0, 0, m, m, m - 1, 0, m, m});
+
+    // shift left 192 + 5 bits
+    REQUIRE(Z{0, 0, 0, 32} * Z{m, 0, m, m, 1, 2, 3, 4} ==
+            Z{0, 0, 0, m - 31, 31, m - 31, m, 63, 64, 96, 128});
   }
 }

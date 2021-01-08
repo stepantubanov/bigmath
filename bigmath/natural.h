@@ -13,6 +13,9 @@ struct raw_natural {
   u32 places_count;
   u32 places_capacity;  // always >= places_count
 
+  u64 _padding;  // 16-byte align the places. assuming raw_natural is 16-byte
+                 // aligned.
+
   union {
     place_t places[0];
     u64 words[0];
@@ -108,8 +111,13 @@ template <typename Allocator>
 inline natural<Allocator>* nat_add_word(natural<Allocator>* result, u64 word) {
   result = nat_ensure<Allocator>(result, result->places_count + 1);
 
-  result->places_count =
-      internal::add_word(result->places, result->places_count, word);
+  u32 orig_places_count = result->places_count;
+  u64 places_added =
+      internal::add_word(result->places, orig_places_count, word);
+
+  if (__builtin_expect(places_added, 0)) {
+    result->places_count = orig_places_count + 1;
+  }
   return result;
 }
 
@@ -121,10 +129,16 @@ inline natural<Allocator>* nat_add_nat(natural<Allocator>* result,
                       ? result->places_count
                       : other->places_count;
 
-  result = nat_ensure(result, max_count + 1);
+  u32 orig_places_count = result->places_count;
 
-  result->places_count = internal::add_nat(result->places, result->places_count,
-                                           other->places, other->places_count);
+  result = nat_ensure(result, max_count + 1);
+  result->places_count = max_count;
+
+  u64 places_added = internal::add_nat(result->places, orig_places_count,
+                                       other->places, other->places_count);
+  if (__builtin_expect(places_added, 0)) {
+    result->places_count = orig_places_count + 1;
+  }
   return result;
 }
 

@@ -6,7 +6,7 @@ struct HeapAllocator {
   static inline void* alloc(u64 size) { return ::malloc(size); }
   static inline void* realloc(void* ptr, u64 size) {
     throw "Should not realloc during benchmark";
-    return ::realloc(ptr, size);
+    return nullptr;
   }
   static inline void free(void* ptr) { ::free(ptr); }
 };
@@ -67,6 +67,9 @@ static void nat_add_nat(benchmark::State& state) {
 
     a->places_count = size0;
   }
+
+  // u64 bytes_per_iteration = 32 * (size0 + size1);
+  // state.SetBytesProcessed(u64(state.iterations()) * bytes_per_iteration);
 
   bigmath::nat_free(a);
   bigmath::nat_free(b);

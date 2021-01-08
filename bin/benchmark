@@ -30,6 +30,8 @@ all_results = {}
 
 BENCHMARK_RUNS.times do
   benchmarks.each do |benchmark|
+    sleep(5.0)
+
     puts "Running #{benchmark}..."
     json = JSON.parse(
       `build/benchmark_#{benchmark} --benchmark_format=json --benchmark_repetitions=#{BENCHMARK_REPETITIONS}`
