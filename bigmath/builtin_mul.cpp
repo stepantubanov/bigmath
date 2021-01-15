@@ -10,7 +10,9 @@ u64 mul_word(void* _res, const void* _nat, u64 nat_size, u64 word) {
   u64* nat = (u64*)_nat;
 
   u64 carry = 0;
-  for (u64 i = 0; i < 4 * nat_size; ++i) {
+  nat_size *= 4;
+
+  for (u64 i = 0; i < nat_size; ++i) {
     __uint128_t t = __uint128_t(nat[i]) * word;
     t += carry;
 
@@ -19,15 +21,15 @@ u64 mul_word(void* _res, const void* _nat, u64 nat_size, u64 word) {
   }
 
   if (!carry) {
-    return nat_size;
+    return 0;
   }
 
-  res[4 * nat_size + 0] = u64(carry);
-  res[4 * nat_size + 1] = 0;
-  res[4 * nat_size + 2] = 0;
-  res[4 * nat_size + 3] = 0;
+  res[nat_size + 0] = u64(carry);
+  res[nat_size + 1] = 0;
+  res[nat_size + 2] = 0;
+  res[nat_size + 3] = 0;
 
-  return nat_size + 1;
+  return 1;
 }
 
 u64 mul_nat(void* _res, const void* _nat, u64 nat_size, const void* _other,
@@ -36,7 +38,7 @@ u64 mul_nat(void* _res, const void* _nat, u64 nat_size, const void* _other,
   u64* nat = (u64*)_nat;
   u64* other = (u64*)_other;
 
-  for (u64 i = 0; i < 4 * (nat_size + other_size); ++i) {
+  for (u64 i = 0; i < 4 * nat_size; ++i) {
     res[i] = 0;
   }
 
@@ -55,9 +57,7 @@ u64 mul_nat(void* _res, const void* _nat, u64 nat_size, const void* _other,
       carry = u64(t >> 64);
     }
 
-    if (carry) {
-      res[j + 4 * nat_size + 0] = carry;
-    }
+    res[j + 4 * nat_size + 0] = carry;
   }
 
   // TODO: normalize the value by removing leading zeros

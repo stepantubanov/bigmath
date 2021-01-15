@@ -54,6 +54,9 @@ TEST_CASE("nat add") {
 
     REQUIRE(Z{m, m, m, m, m} + Z{1, 2, 3, 4, 5} == Z{0, 2, 3, 4, 5, 1});
     REQUIRE(Z{1, 2, 3, 4, 5} + Z{m, m, m, m, m} == Z{0, 2, 3, 4, 5, 1});
+
+    REQUIRE(Z{m, m, m, m} + Z{m, m, m, m, m, 0, 0, 0} ==
+            Z{m - 1, m, m, m, 0, 1});
   }
 
   SECTION("add nat (little + big)") {
@@ -75,6 +78,7 @@ TEST_CASE("nat add") {
     REQUIRE(nat->words[0] == 0);
     REQUIRE(nat->words[1] == 2);
     REQUIRE(nat->words[2] == 4);
+    REQUIRE(nat->words[190] == 190);
 
     u32 last_index = 200 * bigmath::place_t::size - 1;
     REQUIRE(nat->words[last_index - 1] == last_index - 1);

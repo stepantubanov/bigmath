@@ -142,16 +142,21 @@ inline natural<Allocator>* nat_add_nat(natural<Allocator>* result,
   return result;
 }
 
+// result - may be nullptr
 // result = nat * word
 template <typename Allocator>
 inline natural<Allocator>* nat_mul_word(natural<Allocator>* result,
                                         const raw_natural* nat, u64 word) {
-  // result argument may be nullptr
-  result = nat_ensure(result, nat->places_count + 1);
-  result->places_count = nat->places_count;
+  u32 orig_places_count = nat->places_count;
+  result = nat_ensure(result, orig_places_count + 1);
+  result->places_count = orig_places_count;
 
-  result->places_count =
-      internal::mul_word(result->places, nat->places, nat->places_count, word);
+  u64 places_added =
+      internal::mul_word(result->places, nat->places, orig_places_count, word);
+
+  if (places_added) {
+    result->places_count = orig_places_count + 1;
+  }
   return result;
 }
 
@@ -163,8 +168,9 @@ inline natural<Allocator>* nat_mul_nat(natural<Allocator>* result,
   result = nat_ensure(result, a->places_count + b->places_count);
   result->places_count = a->places_count + b->places_count;
 
-  result->places_count = internal::mul_nat(
-      result->places, a->places, a->places_count, b->places, b->places_count);
+  // TODO: normalize (remove leading zeros)
+  internal::mul_nat(result->places, a->places, a->places_count, b->places,
+                    b->places_count);
   return result;
 }
 

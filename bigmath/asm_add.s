@@ -23,16 +23,16 @@
 #  rsi: nat_size (< 32 bit)
 #  rdx: word
 #
+.p2align 4
 BIGMATH_INTERNAL_ADD_WORD:
   xor eax, eax
-  add qword ptr [rdi], rdx
+  add [rdi], rdx
   jc .L_add_word_carry
   ret
-
 .L_add_word_carry:
-  adc qword ptr [rdi+8], 0
-  lea esi, [esi+esi]
-  jc .L_add_word_carry_loop
+  add esi, esi
+  inc qword ptr [rdi+8]
+  jz .L_add_word_carry_loop
   ret
 .L_add_word_carry_loop:
   add rdi, 16
@@ -49,12 +49,12 @@ BIGMATH_INTERNAL_ADD_WORD:
   ret
 
 .L_add_word_finalize:
-  mov ecx, 1
-  movd xmm0, ecx
-  pxor xmm1, xmm1
-  movaps [rdi], xmm0
-  movaps [rdi+16], xmm1
+  # At this point ESI and EAX are zero.
   inc eax
+  mov qword ptr [rdi], rax
+  mov qword ptr [rdi+8], rsi
+  mov qword ptr [rdi+16], rsi
+  mov qword ptr [rdi+24], rsi
   ret
 
 #
@@ -68,6 +68,7 @@ BIGMATH_INTERNAL_ADD_WORD:
 #
 #  upper bound for size vars is (32-5) bits or 134 Mb
 #
+.p2align 4
 BIGMATH_INTERNAL_ADD_NAT:
   mov eax, esi
   sub eax, ecx      # ESI = nat_size - other_size
@@ -75,25 +76,32 @@ BIGMATH_INTERNAL_ADD_NAT:
 
   xor esi, esi
 
+.p2align 5
+.L_add_nat_min_loop:
   # Iterate through the common amount of places (ESI) preserving
   # the carry flag between iterations.
-.align 4
-.L_add_nat_min_loop:
-  mov rsi, [rdi]
-  adc rsi, [rdx]    # NOTE: "adc [rdi], rsi" would be more concise, but
-  mov [rdi], rsi    # is significantly (30-40%) slower (tested on i7-9750h).
+  #
+  # Experiments:
+  # "adc [rdi], rsi" is significantly (30-40%) slower
+  # for some reason. IDQ.ALL_MITE_CYCLES_ANY_UOPS is high and DSB is close
+  # to zero. Adding alignment nops between "adc [mem], r64" makes DSB high
+  # and MITE close to zero, but only ~10% perf. improvement.
 
-  mov rsi, [rdi+8]
-  adc rsi, [rdx+8]
-  mov [rdi+8], rsi
-
-  mov rsi, [rdi+16]
-  adc rsi, [rdx+16]
+  mov rsi, [rdx]
+  mov r8, [rdx+8]
+  adc rsi, [rdi]
+  adc r8, [rdi+8]
+  mov [rdi], rsi
+  mov [rdi+8], r8
+  # Align in the middle to ensure we don't exceed 18 uops in a 32-byte block
+  # inside this loop.
+.p2align 4
+  mov rsi, [rdx+16]
+  mov r8, [rdx+24]
+  adc rsi, [rdi+16]
+  adc r8, [rdi+24]
   mov [rdi+16], rsi
-
-  mov rsi, [rdi+24]
-  adc rsi, [rdx+24]
-  mov [rdi+24], rsi
+  mov [rdi+24], r8
 
   lea rdi, [rdi+32]
   lea rdx, [rdx+32]
@@ -117,100 +125,95 @@ BIGMATH_INTERNAL_ADD_NAT:
 .L_add_nat_carry_loop:
   test eax, eax
   jz .L_add_nat_carry_finish
-
   dec eax
   add rdi, 8
   inc qword ptr [rdi-8]
   jz .L_add_nat_carry_loop
-
   xor eax, eax
-.L_add_nat_ret:
+  ret
+.L_add_nat_carry_finish:
+  xor esi, esi
+  inc eax       # EAX was zero, inc to make it 1.
+  mov qword ptr [rdi], rax
+  mov qword ptr [rdi+8], rsi
+  mov qword ptr [rdi+16], rsi
+  mov qword ptr [rdi+24], rsi
   ret
 
 .L_add_nat_lb:
-  neg eax             # EAX is initially negative, convert to positive.
-  shl eax             # EAX = number of remaining 16-byte blocks.
+  add eax, eax        # EAX = negative count of 16-byte blocks left to process.
   sub rdx, rdi
 
   test ecx, ecx       # ECX contains CF flag.
   jnz .L_add_nat_lb_carry_loop
 
 .L_add_nat_lb_copy:
-  xor esi, esi
-  test edi, 16
-  setnz sil             # ESI = 1 when RDI is not 32-byte aligned.
+  # EAX is guaranteed to be non zero here.
+  cmp eax, -8
+  jle .L_add_nat_lb_large_copy
 
-  test eax, eax
-  setnz r8b             # R8 = 1 when EAX != 0
-  and esi, r8d          # RDI is not-aligned AND EAX != 0
-  jz .L_add_nat_lb_copy_64
-
-  vmovups xmm0, [rdi+rdx]  # XMM copy to align data (or if only one block).
+.L_add_nat_lb_basic_copy_loop:
+  vmovaps xmm0, [rdi+rdx]
   vmovaps [rdi], xmm0
   add rdi, 16
-  dec eax
+  inc eax
+  jnz .L_add_nat_lb_basic_copy_loop
+  vzeroupper
+  ret
 
-.align 4
-.L_add_nat_lb_copy_64:        # Copies 64 byte of data using aligned stores.
-  cmp eax, 4                  # Alignment plays a big role here. Accounts for
-  jb .L_add_nat_lb_copy_32    # about 40% gain in copy speed.
+.L_add_nat_lb_large_copy:
+  movsxd rax, eax
+  neg rax
 
-                              # Comparison for i7-9750h on the same test:
-                              #
-                              #   rep movsq              = 230 ns
-                              #   movups YMM, unroll x 2 = 220 ns (aligned 16)
-                              #   movups YMM, unroll x 2 = 157 ns (aligned 32)
-                              #   movups XMM, unroll x 2 = 300 ns (aligned 16)
+  shl eax, 4
+  lea rcx, [rdi+rax-64]
 
+  vmovaps xmm0, [rdi+rdx]
+  vmovaps [rdi], xmm0
+  add rdi, 16
+  and rdi, -32
+
+.p2align 5
+.L_add_nat_lb_copy_64:
   vmovups ymm0, [rdi+rdx]
   vmovups ymm1, [rdi+rdx+32]
   vmovaps [rdi], ymm0
   vmovaps [rdi+32], ymm1
   add rdi, 64
-  sub eax, 4
-  jmp .L_add_nat_lb_copy_64
+  cmp rdi, rcx
+  jbe .L_add_nat_lb_copy_64
 
-.L_add_nat_lb_copy_32:
-  cmp eax, 2
-  jb .L_add_nat_lb_copy_16
-  vmovups ymm0, [rdi+rdx]
-  vmovaps [rdi], ymm0
-  add rdi, 32
+  add rdx, rcx
 
-.L_add_nat_lb_copy_16:
-  test eax, eax
-  jz .L_add_nat_ret_2
-  vmovups xmm0, [rdi+rdx]
-  vmovups [rdi], xmm0
-.L_add_nat_ret_2:
+  vmovaps xmm0, [rdx+16]
+  vmovaps xmm1, [rdx+32]
+  vmovaps xmm2, [rdx+48]
+  vmovaps [rcx+16], xmm0
+  vmovaps [rcx+32], xmm1
+  vmovaps [rcx+48], xmm2
   vzeroupper
   xor eax, eax
   ret
 
-.L_add_nat_lb_carry_loop:
+.L_add_nat_lb_carry_loop: # Unlikely to loop more than once.
   test eax, eax
   jz .L_add_nat_carry_finish
 
-  mov rsi, 1
-  add rsi, [rdi+rdx]
-  mov [rdi], rsi
+  add rdi, 16
+  inc eax
 
-  mov rsi, [rdi+rdx+8]
+  mov rsi, [rdi+rdx-16]
+  add rsi, 1
+  mov [rdi-16], rsi
+
+  mov rsi, [rdi+rdx-8]
   adc rsi, 0
-  mov [rdi+8], rsi
+  mov [rdi-8], rsi
 
-  lea rdi, [rdi+16]
-  dec eax
+  jc .L_add_nat_lb_carry_loop
 
-  jnc .L_add_nat_lb_copy
-  jmp .L_add_nat_lb_carry_loop
-
-.L_add_nat_carry_finish:
-  mov eax, 1
-  movd xmm0, eax
-  pxor xmm1, xmm1
-  movups [rdi], xmm0
-  movups [rdi+16], xmm1
+  test eax, eax
+  jnz .L_add_nat_lb_copy
   ret
 
 #endif

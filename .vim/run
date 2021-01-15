@@ -1,15 +1,21 @@
 #!/bin/bash -e
 
+BUILD_DIR=build
+if [ $BUILD_TYPE == "Debug" ];
+then
+  BUILD_DIR=build-debug
+fi
+
 echo "[.vim/run] cmake $BUILD_TYPE"
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -B build .
+cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -B $BUILD_DIR .
 
 echo "[.vim/run] make"
-cd build && make
+cd $BUILD_DIR && make
 
 echo "[.vim/run] tests"
 ./tests
 
 echo "[.vim/run] performance benchmarks"
 for benchmark in benchmark_*; do
-  ./$benchmark # --benchmark_format=json
+  ./$benchmark
 done

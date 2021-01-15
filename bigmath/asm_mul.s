@@ -21,52 +21,46 @@
 #
 #  rdi: res
 #  rsi: nat
-#  rdx: nat_size
+#  rdx: nat_size (< 32 bit)
 #  rcx: word
 #
+.p2align 4
 BIGMATH_INTERNAL_MUL_WORD:
-  push rbp
-  mov rbp, rsp
+  xchg rcx, rdx
+  xor eax, eax
 
-  mov rax, rdx
-  xchg rdx, rcx
-
-  xor r11, r11
-
-.mul_word_loop:
+.p2align 4
+.L_mul_word_loop:
   mulx r9, r8, [rsi]
-  adc r8, r11
-  mov [rdi], r8
-
-  mulx r11, r10, [rsi+8]
+  adc r8, rax
+  mulx rax, r10, [rsi+8]
   adc r9, r10
+  mov [rdi], r8
   mov [rdi+8], r9
 
   mulx r9, r8, [rsi+16]
-  adc r11, r8
-  mov [rdi+16], r11
-
-  mulx r11, r10, [rsi+24]
+  adc r8, rax
+  mulx rax, r10, [rsi+24]
   adc r9, r10
+  mov [rdi+16], r8
   mov [rdi+24], r9
 
-  lea rsi, [rsi+32]
   lea rdi, [rdi+32]
-  dec rcx
-  jnz .mul_word_loop
+  lea rsi, [rsi+32]
 
-  test r11, r11
-  jnz .mul_word_carry
-  pop rbp
+  dec ecx
+  jnz .L_mul_word_loop
+
+  adc rax, 0
+  jnz .L_mul_word_carry
   ret
 
-.mul_word_carry:
-  mov qword ptr [rdi], r11
-  mov qword ptr [rdi+8], 0
-  mov qword ptr [rdi+16], 0
-  mov qword ptr [rdi+24], 0
-  inc rax
-  pop rbp
+.L_mul_word_carry:
+  xor esi, esi
+  mov qword ptr [rdi], rax
+  mov qword ptr [rdi+8], rsi
+  mov qword ptr [rdi+16], rsi
+  mov qword ptr [rdi+24], rsi
   ret
 
 #  u64 mul_nat(void* res, const void* nat, u64 nat_size, const void* other,
@@ -78,260 +72,174 @@ BIGMATH_INTERNAL_MUL_WORD:
 #  rcx: other
 #  r8: other_size
 #
+.p2align 2
 BIGMATH_INTERNAL_MUL_NAT:
-  push rbp
-  mov rbp, rsp
+  prefetchw [rdi]
+  prefetcht0 [rsi]
+  prefetcht0 [rcx]
 
+  push rbp
   push rbx
   push r12
   push r13
   push r14
   push r15
 
-  cmp r8, rdx
-  jbe .L_mul_nat_skip_swap
-  xchg rsi, rcx
+  cmp r8d, edx
+  jae .L_mul_nat_after_swap
   xchg rdx, r8
+  xchg rsi, rcx
+.L_mul_nat_after_swap:
+  mov ebx, r8d
+  shl r8d, 5            # R8D = positive bytes in "b"
+  shl edx, 5            # EDX = positive bytes in "a"
 
-.L_mul_nat_skip_swap:
-  shl r8, 2
-  shl rdx, 2
+  mov rbp, rsi
+  mov r9, rdi
 
-  mov [rsp-8], rsi    # [rsp-8] = a
-  mov [rsp-16], rcx   # [rsp-16] = b
-  mov [rsp-24], r8    # [rsp-24] = b-size
-  mov [rsp-32], rdx   # [rsp-32] = a-size
+  add rcx, r8           # RCX = "b" end ptr
+  add rdi, r8           # RDI = dst at "b" end
+  add rsi, rdx          # RSI = "a" end ptr
 
-  #  column-index <= other_size
-  #    down
-  #
-  #    rsi = rsi-begin + column-index
-  #    rsi >= rsi-begin
-  #      2 x mul
-  #      --rsi
-  #      ++rcx
-  #    1 x mul
+  neg r8
+  mov [rsp-8], r8       # [RSP-8] = negative bytes in "b"
+  mov [rsp-16], rsi     # [RSP-24] = "a" end ptr
 
-  mov r15, rsi
+  # Zero "b" sized part of RDI.
 
-  xor r13, r13       # carry0 = 0
-  xor r14, r14       # carry1 = 0
-  xor r8, r8
+  vpxor xmm0, xmm0, xmm0
 
-  # TODO: consider removing r8 usage as loop counter
-  # pre-calculate loop bounds and use rdi instead.
+  vmovaps [r9], xmm0
+  add r9, 16
+  and r9, -32
 
-.L_mul_nat_outer1:
-  mov rdx, [rcx]
-  mov r11, [rsi+8]
+  shr ebx
+  jz .L_mul_nat_zero_32
 
-  mov rax, r13
-  mov rbx, r14
-  xor r13, r13       # carry0 = 0
-  xor r14, r14       # carry1 = 0
+.p2align 3
+.L_mul_nat_zero_64:
+  vmovaps [r9], ymm0
+  vmovaps [r9+32], ymm0
+  add r9, 64
+  dec ebx
+  jnz .L_mul_nat_zero_64
 
-  # LLVM-MCA-BEGIN
-.align 4
-.L_mul_nat_inner1:
-  # rcx = current "b", changes +8 bytes
-  # rsi = current "a", changes -8 bytes
-  # rax = d0
-  # rbx = d1
-  # r13 = carry0
-  # r14 = carry1
-  # r15 = a
-  # loop executes r8+1 times
+  vmovaps [rdi-32], xmm0
+.L_mul_nat_zero_32:
+  vmovaps [rdi-16], xmm0
 
-  mulx r10, r9, [rsi]         # a[i] * b[i]
-  mulx r12, r11, r11          # a[i+1] * b[i]
-  lea rcx, [rcx+8]
-  lea rsi, [rsi-8]
-  mov rdx, [rcx]
+  # Main loop.
 
-  add rax, r9                 # d0 += lo(a[i] * b[i])
-  adc rbx, r10                # d1 += hi(a[i] * b[i])
-  adc r13, 0                  # carry0 += CF
+  # RBP => points to a[0]
+  # RBX => negative bytes in "b"
+  mov rbx, r8
 
-  add rbx, r11                # d1 += lo(a[i+1] * b[i])
-  adc r13, r12                # carry0 += hi(a[i+1] * b[i])
-  adc r14, 0                  # carry1 += CF
+.p2align 4
+.L_mul_nat_outer_loop:
+  mov r12, [rbp]
+  mov r13, [rbp+8]
+  mov r14, [rbp+16]
+  mov r15, [rbp+24]
 
-  mov r11, [rsi+8]
+  xor r8d, r8d
+  xor r9d, r9d
+  xor r10d, r10d
+  xor r11d, r11d
 
-  cmp rsi, r15
-  jae .L_mul_nat_inner1
-  # LLVM-MCA-END
+.p2align 4
+.L_mul_nat_inner_loop:
+  # Unroll [0]
 
-  mulx r10, r9, r11
+  mov rdx, [rcx+rbx]
 
-  lea rsi, [r15+8*r8+16]
-  mov rcx, [rsp-16]
+  xor esi, esi
+  mulx rsi, rax, r12
 
-  add rbx, r9                 # d1 += lo(last)
-  adc r13, r10                # carry0 += hi(last)
-  adc r14, 0                  # carry1 += CF
-  
-  lea r8, [r8+2]              # column-index
-  mov [rdi], rax
-  mov [rdi+8], rbx
-  lea rdi, [rdi+16]
+  adcx r8, [rdi+rbx]
+  adox r8, rax
+  adcx r9, rsi
 
-  cmp r8, [rsp-24]
-  jne .L_mul_nat_outer1
+  mulx rsi, rax, r13
 
-  #  column-index < nat_size
-  #    down
-  #
-  #    rsi = rsi-begin + column-index
-  #    rcx < rcx-end
-  #      2 x mul
-  #      --rsi
-  #      ++rcx
-  #
+  mov [rdi+rbx], r8
+  adox r9, rax
+  adcx r10, rsi
 
-  #mov rcx, [rsp-16]     # b
-  mov r15, [rsp-24]     # b-size
-  lea r15, [rcx+8*r15]  # b[b-size]
+  mulx rsi, rax, r14
 
-.L_mul_nat_outer2:
-  cmp r8, [rsp-32]
-  jae .L_mul_nat_skip2
+  adox r10, rax
+  adcx r11, rsi
 
-  mov r11, [rsi+8]
+  mulx rsi, rax, r15
 
-  mov rax, r13
-  mov rbx, r14
-  xor r13, r13       # carry0 = 0
-  xor r14, r14       # carry1 = 0
+  adox r11, rax
+  mov r8d, 0
+  adox r8, r8
+  adcx r8, rsi
 
-.align 4
-.L_mul_nat_inner2:
-  # rcx = current "b", changes +8 bytes
-  # rsi = current "a", changes -8 bytes
-  # rax = d0
-  # rbx = d1
-  # r13 = carry0
-  # r14 = carry1
-  # r15 = b[b-size] (one past last element)
-  # loop executes r8+1 times
+  # Unroll [1]
 
-  mov rdx, [rcx]
-  mulx r10, r9, [rsi]         # a[i] * b[i]
-  mulx r12, r11, r11          # a[i+1] * b[i]
-  lea rcx, [rcx+8]
-  lea rsi, [rsi-8]
+  mov rdx, [rcx+rbx+8]
+  xor esi, esi
 
-  add rax, r9                 # d0 += lo(a[i] * b[i])
-  adc rbx, r10                # d1 += hi(a[i] * b[i])
-  adc r13, 0                  # carry0 += CF
+  mulx rsi, rax, r12
 
-  add rbx, r11                # d1 += lo(a[i+1] * b[i])
-  adc r13, r12                # carry0 += hi(a[i+1] * b[i])
-  adc r14, 0                  # carry1 += CF
+  adcx r9, [rdi+rbx+8]
+  adox r9, rax
+  adcx r10, rsi
 
-  mov r11, [rsi+8] # TODO: same address as line 214 (first mulx)
+  mulx rsi, rax, r13
 
-  cmp rcx, r15
-  jb .L_mul_nat_inner2
+  mov [rdi+rbx+8], r9
+  adox r10, rax
+  adcx r11, rsi
 
-  mov r9, [rsp-16]            # r9 = b
-  sub rcx, r9                 # rcx = b-size in bytes
-  lea rsi, [rsi+rcx+16]
-  mov rcx, r9
-  
-  lea r8, [r8+2]              # column-index
-  mov [rdi], rax
-  mov [rdi+8], rbx
-  lea rdi, [rdi+16]
+  mulx rsi, rax, r14
 
-  jmp .L_mul_nat_outer2
+  adox r11, rax
+  adcx r8, rsi
 
-  #  nat_size <= column-index < nat_size + other_size - 1
-  #    down
-  #
-  #    rsi = rsi-end - 1
-  #    1 x mul
-  #    rcx < rcx-end
-  #      2 x mul
-  #      --rsi
-  #      ++rcx
-  #
+  mulx rsi, rax, r15
 
-.L_mul_nat_skip2:
-  mov rsi, [rsp-8]          # a
-  mov r8, [rsp-32]          # a-size
-  lea rsi, [rsi+8*r8-8]     # rsi = a[a-size-1]
-  mov [rsp-8], rsi          # TODO: precalculate before all the loops
+  mov r9d, 0
+  adox rax, r8
+  adcx rsi, r9
+  adox rsi, r9
 
-  mov rcx, [rsp-16]
-  lea rcx, [rcx+8]          # rcx = b[1]
+  mov r8, r10
+  mov r9, r11
+  mov r10, rax
+  mov r11, rsi
 
-  xor r8, r8
+  add rbx, 16
+  jnz .L_mul_nat_inner_loop
 
-.L_mul_nat_outer3:
-  mov rdx, [rcx]
-  mov r11, [rsi]
-  mulx r10, r9, r11
+  mov rbx, [rsp-8]
+  mov rsi, [rsp-16]
 
-  mov rax, r13
-  mov rbx, r14
-  xor r13, r13       # carry0 = 0
-  xor r14, r14       # carry1 = 0
+  mov [rdi], r8
+  mov [rdi+8], r9
+  mov [rdi+16], r10
+  mov [rdi+24], r11
 
-  add rax, r9        # d0 += lo
-  adc rbx, r10       # d1 += hi
-  adc r13, 0         # carry0 += CF
+  add rbp, 32
+  add rdi, 32
 
-  lea rsi, [rsi-8]
-  lea rcx, [rcx+8]
+  xor r8d, r8d
+  xor r9d, r9d
+  xor r10d, r10d
+  xor r11d, r11d
 
-.align 4
-.L_mul_nat_inner3:
-  cmp rcx, r15
-  jae .L_mul_nat_skip_inner3
+  cmp rbp, rsi
+  jne .L_mul_nat_outer_loop
 
-  mov rdx, [rcx]
-  mulx r10, r9, [rsi]
-  mulx r12, r11, r11
-  lea rcx, [rcx+8]
-  lea rsi, [rsi-8]
-
-  add rax, r9                 # d0 += lo(a[i] * b[i])
-  adc rbx, r10                # d1 += hi(a[i] * b[i])
-  adc r13, 0                  # carry0 += CF
-
-  add rbx, r11                # d1 += lo(a[i+1] * b[i])
-  adc r13, r12                # carry0 += hi(a[i+1] * b[i])
-  adc r14, 0                  # carry1 += CF
-
-  mov r11, [rsi+8] # TODO: same address as first mulx
-
-  jmp .L_mul_nat_inner3
-
-.L_mul_nat_skip_inner3:
-  lea r8, [r8+2]
-
-  mov [rdi], rax
-  mov [rdi+8], rbx
-  lea rdi, [rdi+16]
-
-  mov rsi, [rsp-8]
-  mov rcx, [rsp-16]
-  lea rcx, [rcx+8*r8+8]   # rcx = next b
-
-  cmp rcx, r15
-  jb .L_mul_nat_outer3
-
-  mov rax, [rsp-24]
-  add rax, [rsp-32]
-  shr rax, 2
+  xor eax, eax
 
   pop r15
   pop r14
   pop r13
   pop r12
   pop rbx
-
   pop rbp
   ret
 
