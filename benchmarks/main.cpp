@@ -9,6 +9,9 @@ struct HeapAllocator {
     return nullptr;
   }
   static inline void free(void* ptr) { ::free(ptr); }
+  static inline void raise_alloc_error(u32 places_capacity) {
+    throw "Allocation error";
+  }
 };
 
 bigmath::natural<HeapAllocator>* make_nat(u64 places_count,
@@ -20,7 +23,7 @@ bigmath::natural<HeapAllocator>* make_nat(u64 places_count,
   auto nat = bigmath::nat_new<HeapAllocator>({0, 0, 0, 0}, places_reserved);
   nat->places_count = places_count;
 
-  for (u64 i = 0; i < bigmath::place_t::size * places_count; ++i) {
+  for (u64 i = 0; i < bigmath::place_t::size_v * places_count; ++i) {
     if (i % 7 == 0)
       nat->words[i] = ~0ul;
     else
@@ -111,6 +114,19 @@ static void nat_mul_nat(benchmark::State& state) {
   bigmath::nat_free(b);
 }
 
+static void nat_square(benchmark::State& state) {
+  auto a = make_nat(state.range(0));
+  auto r = make_nat(state.range(0) + state.range(0));
+
+  for (auto _ : state) {
+    r = bigmath::nat_square(r, a);
+    benchmark::DoNotOptimize(r->places[r->places_count - 1]);
+  }
+
+  bigmath::nat_free(a);
+  bigmath::nat_free(r);
+}
+
 BENCHMARK(nat_add_word)->Arg(2)->Arg(100);
 BENCHMARK(nat_add_nat)
     ->Args({1, 1})
@@ -127,4 +143,5 @@ BENCHMARK(nat_mul_nat)
     ->Args({4, 4})
     ->Args({15, 10})
     ->Args({32, 32});  // 1 KiB x 1 KiB
+BENCHMARK(nat_square)->Arg(1)->Arg(32);
 BENCHMARK_MAIN();

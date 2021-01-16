@@ -62,13 +62,13 @@ TEST_CASE("nat add") {
   SECTION("add nat (little + big)") {
     auto nat = bigmath::nat_new<HeapAllocator>({}, 4);
     nat->places_count = 4;
-    for (u32 i = 0; i < bigmath::place_t::size * 4; ++i) {
+    for (u32 i = 0; i < bigmath::place_t::size_v * 4; ++i) {
       nat->words[i] = i;
     }
 
     auto other = bigmath::nat_new<HeapAllocator>({}, 200);
     other->places_count = 200;
-    for (u32 i = 0; i < bigmath::place_t::size * 200; ++i) {
+    for (u32 i = 0; i < bigmath::place_t::size_v * 200; ++i) {
       other->words[i] = i;
     }
 
@@ -80,7 +80,7 @@ TEST_CASE("nat add") {
     REQUIRE(nat->words[2] == 4);
     REQUIRE(nat->words[190] == 190);
 
-    u32 last_index = 200 * bigmath::place_t::size - 1;
+    u32 last_index = 200 * bigmath::place_t::size_v - 1;
     REQUIRE(nat->words[last_index - 1] == last_index - 1);
     REQUIRE(nat->words[last_index] == last_index);
 
@@ -91,13 +91,13 @@ TEST_CASE("nat add") {
   SECTION("add nat (big + little)") {
     auto nat = bigmath::nat_new<HeapAllocator>({}, 200);
     nat->places_count = 200;
-    for (u32 i = 0; i < bigmath::place_t::size * 200; ++i) {
+    for (u32 i = 0; i < bigmath::place_t::size_v * 200; ++i) {
       nat->words[i] = i;
     }
 
     auto other = bigmath::nat_new<HeapAllocator>({}, 2);
     other->places_count = 2;
-    for (u32 i = 0; i < bigmath::place_t::size * 2; ++i) {
+    for (u32 i = 0; i < bigmath::place_t::size_v * 2; ++i) {
       other->words[i] = i;
     }
 
@@ -108,7 +108,7 @@ TEST_CASE("nat add") {
     REQUIRE(nat->words[1] == 2);
     REQUIRE(nat->words[2] == 4);
 
-    u32 last_index = 200 * bigmath::place_t::size - 1;
+    u32 last_index = 200 * bigmath::place_t::size_v - 1;
     REQUIRE(nat->words[last_index - 1] == last_index - 1);
     REQUIRE(nat->words[last_index] == last_index);
 

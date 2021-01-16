@@ -11,6 +11,9 @@ struct HeapAllocator {
     return ::realloc(ptr, size);
   }
   static inline void free(void* ptr) { ::free(ptr); }
+  static inline void raise_alloc_error(u32 places_capacity) {
+    throw "Allocation error";
+  }
 };
 
 using natural_ptr = bigmath::natural<HeapAllocator>*;
@@ -65,13 +68,18 @@ struct Z {
       return false;
     }
 
-    for (u32 i = 0; i < bigmath::place_t::size * nat->places_count; ++i) {
+    for (u32 i = 0; i < bigmath::place_t::size_v * nat->places_count; ++i) {
       if (nat->words[i] != other_nat->words[i]) {
         return false;
       }
     }
 
     return true;
+  }
+
+  Z square() const {
+    auto result = bigmath::nat_square<HeapAllocator>(nullptr, nat);
+    return Z{result};
   }
 };
 
@@ -81,7 +89,8 @@ struct Catch::StringMaker<Z> {
     std::ostringstream ss;
 
     ss << "Z{";
-    for (u32 i = 0; i < bigmath::place_t::size * value.nat->places_count; ++i) {
+    for (u32 i = 0; i < bigmath::place_t::size_v * value.nat->places_count;
+         ++i) {
       if (i != 0) {
         ss << ", ";
       }
@@ -106,7 +115,7 @@ class ZMatcher : public Catch::MatcherBase<Z> {
       return false;
     }
 
-    for (u32 i = 0; i < bigmath::place_t::size * nat->places_count; ++i) {
+    for (u32 i = 0; i < bigmath::place_t::size_v * nat->places_count; ++i) {
       if (nat->words[i] != value.nat->words[i]) {
         return false;
       }

@@ -1,5 +1,4 @@
 #include <bigmath/natural.h>
-#include <stdio.h>
 
 #include "helper.h"
 
@@ -45,20 +44,20 @@ TEST_CASE("nat mul") {
     u32 little_size = 1 + rand() % 5;
     u32 big_size = 5 + rand() % 20;
 
-    u32 shift = rand() % (bigmath::place_t::size * little_size);
+    u32 shift = rand() % (bigmath::place_t::size_v * little_size);
 
     printf("generated %u %u %u\n", little_size, big_size, shift);
 
     auto nat = bigmath::nat_new<HeapAllocator>({}, little_size);
     nat->places_count = little_size;
-    for (u32 i = 0; i < bigmath::place_t::size * little_size; ++i) {
+    for (u32 i = 0; i < bigmath::place_t::size_v * little_size; ++i) {
       nat->words[i] = 0;
     }
     nat->words[shift] = 1;
 
     auto other = bigmath::nat_new<HeapAllocator>({}, big_size);
     other->places_count = big_size;
-    for (u32 i = 0; i < bigmath::place_t::size * big_size; ++i) {
+    for (u32 i = 0; i < bigmath::place_t::size_v * big_size; ++i) {
       other->words[i] = i;
     }
 

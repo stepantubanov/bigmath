@@ -7,22 +7,20 @@
 namespace bigmath {
 namespace internal {
 
-u64 add_word(void* _nat, u64 nat_size, u64 word) {
-  u64* nat = (u64*)_nat;
+bool add_word(place_t* _nat, u64 nat_size, u64 word) {
+  auto nat = reinterpret_cast<u64*>(_nat);
 
-  __uint128_t sum = __uint128_t(nat[0]) + word;
-  nat[0] = u64(sum);
-
-  if (__builtin_expect(u64(sum >> 64) == 0, 1)) {
-    return 0;
+  bool carry = __builtin_uaddl_overflow(nat[0], word, &nat[0]);
+  if (BIGMATH_LIKELY(!carry)) {
+    return false;
   }
 
-  nat_size = 4 * nat_size;
+  nat_size *= place_t::size_v;
 
   for (u32 i = 1; i < nat_size; ++i) {
-    nat[i]++;
-    if (__builtin_expect(nat[i] != 0, 1)) {
-      return 0;
+    carry = __builtin_uaddl_overflow(nat[i], 1, &nat[i]);
+    if (BIGMATH_LIKELY(!carry)) {
+      return false;
     }
   }
 
@@ -30,15 +28,19 @@ u64 add_word(void* _nat, u64 nat_size, u64 word) {
   nat[nat_size + 1] = 0;
   nat[nat_size + 2] = 0;
   nat[nat_size + 3] = 0;
-  return 1;
+  return true;
 }
 
-u64 add_nat(void* _nat, u64 nat_size, const void* _other, u64 other_size) {
+bool add_nat(place_t* _nat, u64 nat_size, const place_t* _other,
+             u64 other_size) {
   using ull = unsigned long long;
 
-  u64* nat = (u64*)_nat;
-  u64* other = (u64*)_other;
-  u64* nat_max;
+  auto nat = reinterpret_cast<u64*>(_nat);
+  auto other = reinterpret_cast<const u64*>(_other);
+
+  const u64* nat_max;
+
+  // TODO: assert(place_t::size_v == 4)
 
   u32 min_size, max_size;
 
@@ -69,12 +71,12 @@ u64 add_nat(void* _nat, u64 nat_size, const void* _other, u64 other_size) {
   while (carry) {
     auto j = i * 4;
 
-    if (__builtin_expect(i == max_size, 0)) {
+    if (BIGMATH_UNLIKELY(i == max_size)) {
       nat[j + 0] = 1;
       nat[j + 1] = 0;
       nat[j + 2] = 0;
       nat[j + 3] = 0;
-      return 1;
+      return true;
     }
 
     bool c;
@@ -93,7 +95,7 @@ u64 add_nat(void* _nat, u64 nat_size, const void* _other, u64 other_size) {
     }
   }
 
-  return 0;
+  return false;
 }
 
 }  // namespace internal

@@ -2,29 +2,16 @@
 
 #ifdef BIGMATH_ASM_X86_64
 
-#ifdef __GNUC__
-
-#ifdef __clang__
-#define BIGMATH_INTERNAL_ADD_WORD __ZN7bigmath8internal8add_wordEPvmm
-#define BIGMATH_INTERNAL_ADD_NAT  __ZN7bigmath8internal7add_natEPvmPKvm
-#else
-#define BIGMATH_INTERNAL_ADD_WORD _ZN7bigmath8internal8add_wordEPvmm
-#define BIGMATH_INTERNAL_ADD_NAT  _ZN7bigmath8internal7add_natEPvmPKvm
-#endif
-
-#endif
-
-.global BIGMATH_INTERNAL_ADD_WORD, BIGMATH_INTERNAL_ADD_NAT
-
 #
-#  u64 add_word(void* nat, u64 nat_size, u64 word)
+#  bool add_word(place_t* nat, u64 nat_size, u64 word);
 #
 #  rdi: nat
 #  rsi: nat_size (< 32 bit)
 #  rdx: word
 #
 .p2align 4
-BIGMATH_INTERNAL_ADD_WORD:
+.global __ZN7bigmath8internal8add_wordEPNS_7place_tEmm
+__ZN7bigmath8internal8add_wordEPNS_7place_tEmm:
   xor eax, eax
   add [rdi], rdx
   jc .L_add_word_carry
@@ -58,18 +45,16 @@ BIGMATH_INTERNAL_ADD_WORD:
   ret
 
 #
-#  u64 add_nat(void* nat, u64 nat_size,
-#              const void* other, u64 other_size)
+#  bool add_nat(place_t* nat, u64 nat_size, const place_t* other, u64 other_size);
 #
 #  rdi: nat
 #  rsi: nat_size (< 32 bit)
 #  rdx: other
 #  rcx: other_size (< 32 bit)
 #
-#  upper bound for size vars is (32-5) bits or 134 Mb
-#
 .p2align 4
-BIGMATH_INTERNAL_ADD_NAT:
+.global __ZN7bigmath8internal7add_natEPNS_7place_tEmPKS1_m
+__ZN7bigmath8internal7add_natEPNS_7place_tEmPKS1_m:
   mov eax, esi
   sub eax, ecx      # ESI = nat_size - other_size
   cmovb ecx, esi    # ECX = min(nat_size, other_size)

@@ -2,22 +2,8 @@
 
 #ifdef BIGMATH_ASM_X86_64
 
-#ifdef __GNUC__
-
-#ifdef __clang__
-#define BIGMATH_INTERNAL_MUL_WORD __ZN7bigmath8internal8mul_wordEPvPKvmm
-#define BIGMATH_INTERNAL_MUL_NAT __ZN7bigmath8internal7mul_natEPvPKvmS3_m
-#else
-#define BIGMATH_INTERNAL_MUL_WORD _ZN7bigmath8internal8mul_wordEPvPKvmm
-#define BIGMATH_INTERNAL_MUL_NAT _ZN7bigmath8internal7mul_natEPvPKvmS3_m
-#endif
-
-#endif
-
-.global BIGMATH_INTERNAL_MUL_WORD, BIGMATH_INTERNAL_MUL_NAT
-
 #
-#  u64 mul_word(void* res, const void* nat, u64 nat_size, u64 word)
+#  bool mul_word(place_t* res, const place_t* nat, u64 nat_size, u64 word);
 #
 #  rdi: res
 #  rsi: nat
@@ -25,7 +11,8 @@
 #  rcx: word
 #
 .p2align 4
-BIGMATH_INTERNAL_MUL_WORD:
+.global __ZN7bigmath8internal8mul_wordEPNS_7place_tEPKS1_mm
+__ZN7bigmath8internal8mul_wordEPNS_7place_tEPKS1_mm:
   xchg rcx, rdx
   xor eax, eax
 
@@ -73,7 +60,8 @@ BIGMATH_INTERNAL_MUL_WORD:
 #  r8: other_size
 #
 .p2align 2
-BIGMATH_INTERNAL_MUL_NAT:
+.global __ZN7bigmath8internal7mul_natEPNS_7place_tEPKS1_mS4_m
+__ZN7bigmath8internal7mul_natEPNS_7place_tEPKS1_mS4_m:
   prefetchw [rdi]
   prefetcht0 [rsi]
   prefetcht0 [rcx]

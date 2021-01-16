@@ -4,17 +4,21 @@
 
 namespace bigmath {
 
-struct place_t {
-  static constexpr u64 size = 4;
-  u64 values[size];
-};
-
 struct raw_natural {
-  u32 places_count;
-  u32 places_capacity;  // always >= places_count
+  // Each place is 32 bytes.
+  // 1 << 22 places is ~134 megabytes.
+  static constexpr u32 max_capacity_v = (1 << 20);
 
-  u64 _padding;  // 16-byte align the places. assuming raw_natural is 16-byte
-                 // aligned.
+  // Places count (memory area beyond specified places count contains
+  // uninitialized values). Must be non-zero.
+  u32 places_count;
+
+  // Allocated memory size (count of places allocated). Must be greater or equal
+  // to places_count.
+  u32 places_capacity;
+
+  // Padding, to ensure "places" alignment on 16 bytes.
+  u64 _padding;
 
   union {
     place_t places[0];
@@ -22,33 +26,40 @@ struct raw_natural {
   };
 };
 
+// TODO: Rename "Allocator" to "Harness"?
 template <typename Allocator>
 struct natural : raw_natural {};
 
 template <typename Allocator>
-inline natural<Allocator>* nat_alloc(u32 places_capacity) {
-  u64 size = sizeof(natural<Allocator>) + sizeof(place_t) * places_capacity;
+inline auto nat_alloc(u32 places_capacity) {
+  if (BIGMATH_UNLIKELY(places_capacity > raw_natural::max_capacity_v)) {
+    Allocator::raise_alloc_error(places_capacity);
+  }
+
+  u32 size = sizeof(natural<Allocator>) + sizeof(place_t) * places_capacity;
   return static_cast<natural<Allocator>*>(Allocator::alloc(size));
 }
 
 template <typename Allocator>
-inline natural<Allocator>* nat_ensure(natural<Allocator>* nat,
-                                      u32 required_capacity) {
-  // nat may be nullptr
-
-  u32 capacity = nat ? nat->places_capacity : 0;
-  if (capacity >= required_capacity) {
+inline auto nat_ensure(natural<Allocator>* nat, u32 required_capacity) {
+  u32 current_capacity = nat ? nat->places_capacity : 0;
+  if (current_capacity >= required_capacity) {
     return nat;
   }
 
-  capacity = capacity * 3 / 2;
-  if (capacity < required_capacity) {
-    capacity = required_capacity;
+  u32 new_capacity = current_capacity * 3 / 2;
+  if (new_capacity < required_capacity) {
+    new_capacity = required_capacity;
   }
 
-  nat = static_cast<natural<Allocator>*>(Allocator::realloc(
-      nat, sizeof(natural<Allocator>) + sizeof(place_t) * capacity));
-  nat->places_capacity = capacity;
+  if (BIGMATH_UNLIKELY(new_capacity > raw_natural::max_capacity_v)) {
+    Allocator::raise_alloc_error(new_capacity);
+  }
+
+  u32 size = sizeof(natural<Allocator>) + sizeof(place_t) * new_capacity;
+
+  nat = static_cast<natural<Allocator>*>(Allocator::realloc(nat, size));
+  nat->places_capacity = new_capacity;
   return nat;
 }
 
@@ -58,7 +69,7 @@ inline void nat_free(natural<Allocator>* nat) {
 }
 
 template <typename Allocator>
-inline natural<Allocator>* nat_new(place_t place, u32 places_capacity = 1) {
+inline auto nat_new(place_t place, u32 places_capacity = 1) {
   auto nat = nat_alloc<Allocator>(places_capacity);
 
   nat->places_count = 1;
@@ -68,9 +79,9 @@ inline natural<Allocator>* nat_new(place_t place, u32 places_capacity = 1) {
 }
 
 template <typename Allocator>
-inline natural<Allocator>* nat_new_words(const u64* words, u32 words_count,
-                                         u32 places_capacity = 0) {
-  u32 places_count = (words_count + place_t::size - 1) / place_t::size;
+inline auto nat_new_words(const u64* words, u32 words_count,
+                          u32 places_capacity = 0) {
+  u32 places_count = (words_count + place_t::size_v - 1) / place_t::size_v;
   if (places_capacity < places_count) {
     places_capacity = places_count;
   }
@@ -82,7 +93,7 @@ inline natural<Allocator>* nat_new_words(const u64* words, u32 words_count,
   for (u32 i = 0; i < words_count; ++i) {
     nat->words[i] = words[i];
   }
-  for (u32 i = words_count; i < place_t::size * places_count; ++i) {
+  for (u32 i = words_count; i < place_t::size_v * places_count; ++i) {
     nat->words[i] = 0;
   }
 
@@ -90,8 +101,7 @@ inline natural<Allocator>* nat_new_words(const u64* words, u32 words_count,
 }
 
 template <typename Allocator>
-inline natural<Allocator>* nat_clone(natural<Allocator>* nat,
-                                     u32 places_capacity = 0) {
+inline auto nat_clone(natural<Allocator>* nat, u32 places_capacity = 0) {
   u32 count = nat->places_count;
   if (places_capacity < count) {
     places_capacity = count;
@@ -108,36 +118,35 @@ inline natural<Allocator>* nat_clone(natural<Allocator>* nat,
 
 // result += word
 template <typename Allocator>
-inline natural<Allocator>* nat_add_word(natural<Allocator>* result, u64 word) {
-  result = nat_ensure<Allocator>(result, result->places_count + 1);
+inline auto nat_add_word(natural<Allocator>* result, u64 word) {
+  u32 places_count = result->places_count;
+  result = nat_ensure<Allocator>(result, places_count + 1);
 
-  u32 orig_places_count = result->places_count;
-  u64 places_added =
-      internal::add_word(result->places, orig_places_count, word);
+  bool place_added = internal::add_word(result->places, places_count, word);
 
-  if (__builtin_expect(places_added, 0)) {
-    result->places_count = orig_places_count + 1;
+  if (BIGMATH_UNLIKELY(place_added)) {
+    result->places_count = places_count + 1;
   }
   return result;
 }
 
 // result += other
 template <typename Allocator>
-inline natural<Allocator>* nat_add_nat(natural<Allocator>* result,
-                                       const raw_natural* other) {
-  u64 max_count = result->places_count > other->places_count
-                      ? result->places_count
-                      : other->places_count;
+inline auto nat_add_nat(natural<Allocator>* result, const raw_natural* other) {
+  u32 old_count = result->places_count;
+  u32 new_count = old_count;
 
-  u32 orig_places_count = result->places_count;
+  if (old_count < other->places_count) {
+    new_count = other->places_count;
+  }
 
-  result = nat_ensure(result, max_count + 1);
-  result->places_count = max_count;
+  result = nat_ensure(result, new_count + 1);
+  result->places_count = new_count;
 
-  u64 places_added = internal::add_nat(result->places, orig_places_count,
-                                       other->places, other->places_count);
-  if (__builtin_expect(places_added, 0)) {
-    result->places_count = orig_places_count + 1;
+  bool place_added = internal::add_nat(result->places, old_count, other->places,
+                                       other->places_count);
+  if (BIGMATH_UNLIKELY(place_added)) {
+    result->places_count = new_count + 1;
   }
   return result;
 }
@@ -145,32 +154,43 @@ inline natural<Allocator>* nat_add_nat(natural<Allocator>* result,
 // result - may be nullptr
 // result = nat * word
 template <typename Allocator>
-inline natural<Allocator>* nat_mul_word(natural<Allocator>* result,
-                                        const raw_natural* nat, u64 word) {
-  u32 orig_places_count = nat->places_count;
-  result = nat_ensure(result, orig_places_count + 1);
-  result->places_count = orig_places_count;
+inline auto nat_mul_word(natural<Allocator>* result, const raw_natural* nat,
+                         u64 word) {
+  u32 places_count = nat->places_count;
+  result = nat_ensure(result, places_count + 1);
+  result->places_count = places_count;
 
-  u64 places_added =
-      internal::mul_word(result->places, nat->places, orig_places_count, word);
+  bool place_added =
+      internal::mul_word(result->places, nat->places, places_count, word);
 
-  if (places_added) {
-    result->places_count = orig_places_count + 1;
+  if (place_added) {
+    result->places_count = places_count + 1;
   }
   return result;
 }
 
 template <typename Allocator>
-inline natural<Allocator>* nat_mul_nat(natural<Allocator>* result,
-                                       const raw_natural* a,
-                                       const raw_natural* b) {
-  // result argument may be nullptr
-  result = nat_ensure(result, a->places_count + b->places_count);
-  result->places_count = a->places_count + b->places_count;
+inline auto nat_mul_nat(natural<Allocator>* result, const raw_natural* a,
+                        const raw_natural* b) {
+  u32 places_count = a->places_count + b->places_count;
+
+  result = nat_ensure(result, places_count);
+  result->places_count = places_count;
 
   // TODO: normalize (remove leading zeros)
   internal::mul_nat(result->places, a->places, a->places_count, b->places,
                     b->places_count);
+  return result;
+}
+
+template <typename Allocator>
+inline auto nat_square(natural<Allocator>* result, const raw_natural* nat) {
+  u32 places_count = 2 * nat->places_count;
+
+  result = nat_ensure(result, places_count);
+  result->places_count = places_count;
+
+  internal::square_nat(result->places, nat->places, nat->places_count);
   return result;
 }
 
