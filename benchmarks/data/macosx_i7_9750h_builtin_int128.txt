@@ -1,56 +1,62 @@
-Date: 2021-01-15 22:21:58 +0300
+Date: 2021-01-19 20:00:47 +0300
 
 Aggregate (min/median/max):
 
-nat_add_word/2                12     12     13
+nat_add_word/2                13     13     13
 
-nat_add_word/100              12     12     12
+nat_add_word/100              13     13     13
 
 nat_add_nat/1/1                5      5      5
 
-nat_add_nat/8/8               19     19     19
+nat_add_nat/8/8               19     20     20
 
-nat_add_nat/125/125          274    275    282
+nat_add_nat/125/125          271    275    276
 
-nat_add_nat/500/500         1087   1093   1123
+nat_add_nat/500/500         1092   1110   1172
 
-nat_add_nat/1/5                7      7      7
+nat_add_nat/1/5                8      8      9
 
-nat_add_nat/2/60              25     30     54
+nat_add_nat/2/60              29     32     33
 
-nat_add_nat/30/500           244    456    606
+nat_add_nat/30/500           252    259    418
 
-nat_add_nat/500/30            65     65     66
+nat_add_nat/500/30            65     67     69
 
-nat_mul_word/2                54     54     68
+nat_mul_word/2                55     57     62
 
-nat_mul_word/100            1935   1961   1997
+nat_mul_word/100            1936   1982   2005
 
-nat_mul_nat/1/1               18     18     19
+nat_mul_nat/1/1               19     19     20
 
-nat_mul_nat/4/4              188    189    189
+nat_mul_nat/4/4              190    193    195
 
-nat_mul_nat/15/10           1885   1889   1922
+nat_mul_nat/15/10           1920   1986   2094
 
-nat_mul_nat/32/32          13117  13408  13496
+nat_mul_nat/32/32          13185  13893  13998
+
+nat_square/1                  20     20     20
+
+nat_square/32               5809   5835   5862
 
 
 
 Repetitions:
 
-nat_add_word/2            12  12  12  13
-nat_add_word/100          12  12  12  12
+nat_add_word/2            13  13  13  13
+nat_add_word/100          13  13  13  13
 nat_add_nat/1/1           5  5  5  5
-nat_add_nat/8/8           19  19  19  19
-nat_add_nat/125/125       274  274  275  282
-nat_add_nat/500/500       1087  1089  1093  1123
-nat_add_nat/1/5           7  7  7  7
-nat_add_nat/2/60          25  29  30  54
-nat_add_nat/30/500        244  245  456  606
-nat_add_nat/500/30        65  65  65  66
-nat_mul_word/2            54  54  54  68
-nat_mul_word/100          1935  1935  1961  1997
-nat_mul_nat/1/1           18  18  18  19
-nat_mul_nat/4/4           188  189  189  189
-nat_mul_nat/15/10         1885  1888  1889  1922
-nat_mul_nat/32/32         13117  13179  13408  13496
+nat_add_nat/8/8           19  19  20  20
+nat_add_nat/125/125       271  273  275  276
+nat_add_nat/500/500       1092  1104  1110  1172
+nat_add_nat/1/5           8  8  8  9
+nat_add_nat/2/60          29  29  32  33
+nat_add_nat/30/500        252  258  259  418
+nat_add_nat/500/30        65  67  67  69
+nat_mul_word/2            55  57  57  62
+nat_mul_word/100          1936  1937  1982  2005
+nat_mul_nat/1/1           19  19  19  20
+nat_mul_nat/4/4           190  192  193  195
+nat_mul_nat/15/10         1920  1922  1986  2094
+nat_mul_nat/32/32         13185  13424  13893  13998
+nat_square/1              20  20  20  20
+nat_square/32             5809  5828  5835  5862

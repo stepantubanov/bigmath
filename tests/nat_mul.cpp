@@ -46,8 +46,6 @@ TEST_CASE("nat mul") {
 
     u32 shift = rand() % (bigmath::place_t::size_v * little_size);
 
-    printf("generated %u %u %u\n", little_size, big_size, shift);
-
     auto nat = bigmath::nat_new<HeapAllocator>({}, little_size);
     nat->places_count = little_size;
     for (u32 i = 0; i < bigmath::place_t::size_v * little_size; ++i) {

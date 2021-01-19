@@ -194,4 +194,31 @@ inline auto nat_square(natural<Allocator>* result, const raw_natural* nat) {
   return result;
 }
 
+template <typename Allocator, typename TempAllocator>
+inline auto nat_pow(natural<Allocator>* result, const raw_natural* a,
+                    u32 power) {
+  return nullptr;
+}
+
+template <typename Allocator, typename TempAllocator>
+inline auto nat_mul_nat_karatsuba(natural<Allocator>* result,
+                                  const raw_natural* a, const raw_natural* b) {
+  return nullptr;
+}
+
+inline auto nat_compare(const raw_natural* a, const raw_natural* b) -> s32 {
+  // -1, 0, 1
+  return 0;
+}
+
+template <typename TempAllocator>
+inline auto nat_to_text(const raw_natural* a, u32 radix) {
+  return nullptr;
+}
+
+template <typename Allocator>
+inline auto nat_from_text(u32 radix, const char* text, u32 size) {
+  return nullptr;
+}
+
 }  // namespace bigmath

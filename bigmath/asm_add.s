@@ -78,9 +78,6 @@ __ZN7bigmath8internal7add_natEPNS_7place_tEmPKS1_m:
   adc r8, [rdi+8]
   mov [rdi], rsi
   mov [rdi+8], r8
-  # Align in the middle to ensure we don't exceed 18 uops in a 32-byte block
-  # inside this loop.
-.p2align 4
   mov rsi, [rdx+16]
   mov r8, [rdx+24]
   adc rsi, [rdi+16]
@@ -96,6 +93,8 @@ __ZN7bigmath8internal7add_natEPNS_7place_tEmPKS1_m:
 
   setc cl
 
+.byte 0x66, 0x90    # 2-byte nop to avoid having "js" branch on 32-byte
+                    # boundary.
   test eax, eax     # EAX < 0 indicates that "nat" is larger than "other".
   js .L_add_nat_lb
 

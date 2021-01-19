@@ -6,6 +6,8 @@
 #define BIGMATH_LIKELY(_condition_) __builtin_expect(_condition_, 1)
 #define BIGMATH_UNLIKELY(_condition_) __builtin_expect(_condition_, 0)
 
+#define BIGMATH_LOOP_UNROLL_TWO _Pragma("clang loop unroll_count(2)")
+
 namespace bigmath {
 namespace internal {
 
