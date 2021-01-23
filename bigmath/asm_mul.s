@@ -59,7 +59,7 @@ __ZN7bigmath8internal8mul_wordEPNS_7place_tEPKS1_mm:
 #  rcx: other
 #  r8: other_size
 #
-.p2align 2
+.p2align 4
 .global __ZN7bigmath8internal7mul_natEPNS_7place_tEPKS1_mS4_m
 __ZN7bigmath8internal7mul_natEPNS_7place_tEPKS1_mS4_m:
   prefetchw [rdi]
@@ -74,24 +74,21 @@ __ZN7bigmath8internal7mul_natEPNS_7place_tEPKS1_mS4_m:
   push r15
 
   cmp r8d, edx
-  jae .L_mul_nat_after_swap
-  xchg rdx, r8
+  jae L_mul_nat_after_swap
+  xchg edx, r8d
   xchg rsi, rcx
-.L_mul_nat_after_swap:
+L_mul_nat_after_swap:
   mov ebx, r8d
   shl r8d, 5            # R8D = positive bytes in "b"
   shl edx, 5            # EDX = positive bytes in "a"
 
-  mov rbp, rsi
   mov r9, rdi
 
-  add rcx, r8           # RCX = "b" end ptr
   add rdi, r8           # RDI = dst at "b" end
+  mov rbp, rsi          # RBP = "a" start ptr
   add rsi, rdx          # RSI = "a" end ptr
-
-  neg r8
-  mov [rsp-8], r8       # [RSP-8] = negative bytes in "b"
-  mov [rsp-16], rsi     # [RSP-24] = "a" end ptr
+  add rcx, r8           # RCX = "b" end ptr
+  mov [rsp-8], rsi      # [RSP-8] = "a" end ptr
 
   # Zero "b" sized part of RDI.
 
@@ -102,28 +99,28 @@ __ZN7bigmath8internal7mul_natEPNS_7place_tEPKS1_mS4_m:
   and r9, -32
 
   shr ebx
-  jz .L_mul_nat_zero_32
+  jz L_mul_nat_zero_32
 
 .p2align 3
-.L_mul_nat_zero_64:
+L_mul_nat_zero_64:
   vmovaps [r9], ymm0
   vmovaps [r9+32], ymm0
   add r9, 64
   dec ebx
-  jnz .L_mul_nat_zero_64
+  jnz L_mul_nat_zero_64
 
   vmovaps [rdi-32], xmm0
-.L_mul_nat_zero_32:
+L_mul_nat_zero_32:
   vmovaps [rdi-16], xmm0
 
   # Main loop.
 
-  # RBP => points to a[0]
-  # RBX => negative bytes in "b"
-  mov rbx, r8
+  neg r8
+  mov [rsp-16], r8      # [RSP-16] = negative bytes in "b"
+  mov rbx, r8           # RBX = negative bytes in "b"
 
 .p2align 4
-.L_mul_nat_outer_loop:
+L_mul_nat_outer_loop:
   mov r12, [rbp]
   mov r13, [rbp+8]
   mov r14, [rbp+16]
@@ -135,7 +132,7 @@ __ZN7bigmath8internal7mul_natEPNS_7place_tEPKS1_mS4_m:
   xor r11d, r11d
 
 .p2align 4
-.L_mul_nat_inner_loop:
+L_mul_nat_inner_loop:
   # Unroll [0]
 
   mov rdx, [rcx+rbx]
@@ -163,7 +160,7 @@ __ZN7bigmath8internal7mul_natEPNS_7place_tEPKS1_mS4_m:
   adox r11, rax
   mov r8d, 0
   adox r8, r8
-  adcx r8, rsi
+  adc r8, rsi
 
   # Unroll [1]
 
@@ -189,10 +186,10 @@ __ZN7bigmath8internal7mul_natEPNS_7place_tEPKS1_mS4_m:
 
   mulx rsi, rax, r15
 
-  mov r9d, 0
   adox rax, r8
-  adcx rsi, r9
-  adox rsi, r9
+  mov r9d, 0
+  adox r9, r9
+  adc rsi, r9
 
   mov r8, r10
   mov r9, r11
@@ -200,10 +197,10 @@ __ZN7bigmath8internal7mul_natEPNS_7place_tEPKS1_mS4_m:
   mov r11, rsi
 
   add rbx, 16
-  jnz .L_mul_nat_inner_loop
+  jnz L_mul_nat_inner_loop
 
-  mov rbx, [rsp-8]
-  mov rsi, [rsp-16]
+  mov rsi, [rsp-8]
+  mov rbx, [rsp-16]
 
   mov [rdi], r8
   mov [rdi+8], r9
@@ -213,13 +210,8 @@ __ZN7bigmath8internal7mul_natEPNS_7place_tEPKS1_mS4_m:
   add rbp, 32
   add rdi, 32
 
-  xor r8d, r8d
-  xor r9d, r9d
-  xor r10d, r10d
-  xor r11d, r11d
-
   cmp rbp, rsi
-  jne .L_mul_nat_outer_loop
+  jne L_mul_nat_outer_loop
 
   xor eax, eax
 

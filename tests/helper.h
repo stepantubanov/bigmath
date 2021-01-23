@@ -63,18 +63,19 @@ struct Z {
   bool operator==(const Z& other) const {
     auto other_nat = other.nat;
 
-    // FIXME: implement actual routine in bigmath.
-    if (nat->places_count != other_nat->places_count) {
-      return false;
-    }
+    return bigmath::nat_compare(nat, other_nat) == 0;
+  }
 
-    for (u32 i = 0; i < bigmath::place_t::size_v * nat->places_count; ++i) {
-      if (nat->words[i] != other_nat->words[i]) {
-        return false;
-      }
-    }
+  bool operator<(const Z& other) const {
+    auto other_nat = other.nat;
 
-    return true;
+    return bigmath::nat_compare(nat, other_nat) < 0;
+  }
+
+  bool operator>(const Z& other) const {
+    auto other_nat = other.nat;
+
+    return bigmath::nat_compare(nat, other_nat) > 0;
   }
 
   Z square() const {

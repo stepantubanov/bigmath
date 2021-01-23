@@ -200,15 +200,26 @@ inline auto nat_pow(natural<Allocator>* result, const raw_natural* a,
   return nullptr;
 }
 
-template <typename Allocator, typename TempAllocator>
+template <typename Allocator, typename TempAllocator, u64 Threshold = 4>
 inline auto nat_mul_nat_karatsuba(natural<Allocator>* result,
                                   const raw_natural* a, const raw_natural* b) {
+  u32 places_count = a->places_count + b->places_count;
+  result = nat_ensure(result, places_count);
+
+  u8* buffer = TempAllocator::alloc();
+  // internal::mul_karatsuba(buffer, result, a->places, a->places_count,
+  // b->places,
+  //                          b->places_count);
+
   return nullptr;
 }
 
 inline auto nat_compare(const raw_natural* a, const raw_natural* b) -> s32 {
-  // -1, 0, 1
-  return 0;
+  // TODO: compare sizes?
+  u32 min_size =
+      (a->places_count < b->places_count) ? a->places_count : b->places_count;
+
+  return internal::compare_nat(a->places, b->places, min_size);
 }
 
 template <typename TempAllocator>

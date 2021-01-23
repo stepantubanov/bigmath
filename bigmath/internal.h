@@ -20,5 +20,7 @@ void mul_nat(place_t* res, const place_t* nat, u64 nat_size,
 
 void square_nat(place_t* res, const place_t* nat, u64 nat_size);
 
+s32 compare_nat(const place_t* a, const place_t* b, u64 size);
+
 }  // namespace internal
 }  // namespace bigmath

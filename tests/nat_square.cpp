@@ -16,6 +16,7 @@ TEST_CASE("nat square") {
   REQUIRE(Z{0, m, m, 0}.square() == Z{0, 0, 1, 0, m - 1, m, 0, 0});
 
   REQUIRE(Z{0, 0, 1, m}.square() == Z{0, 0, 0, 0, 1, m - 1, 2, m - 1});
+  REQUIRE(Z{0, m, 0, 0}.square() == Z{0, 0, 1, m - 1, 0, 0, 0, 0});
 
   SECTION("big number") {
     u32 big_size = 5 + rand() % 20;
