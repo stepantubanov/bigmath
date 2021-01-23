@@ -81,25 +81,20 @@ L_mul_nat_after_swap:
   mov ebx, r8d
   shl r8d, 5            # R8D = positive bytes in "b"
   shl edx, 5            # EDX = positive bytes in "a"
-
-  mov r9, rdi
-
-  add rdi, r8           # RDI = dst at "b" end
   mov rbp, rsi          # RBP = "a" start ptr
   add rsi, rdx          # RSI = "a" end ptr
   add rcx, r8           # RCX = "b" end ptr
-  mov [rsp-8], rsi      # [RSP-8] = "a" end ptr
 
   # Zero "b" sized part of RDI.
 
   vpxor xmm0, xmm0, xmm0
 
-  vmovaps [r9], xmm0
-  add r9, 16
+  vmovups [rdi], ymm0
+  lea r9, [rdi+16]
   and r9, -32
 
   shr ebx
-  jz L_mul_nat_zero_32
+  jz L_mul_nat_after_zero
 
 .p2align 3
 L_mul_nat_zero_64:
@@ -109,17 +104,15 @@ L_mul_nat_zero_64:
   dec ebx
   jnz L_mul_nat_zero_64
 
-  vmovaps [rdi-32], xmm0
-L_mul_nat_zero_32:
-  vmovaps [rdi-16], xmm0
-
+L_mul_nat_after_zero:
   # Main loop.
 
+  add rdi, r8           # RDI = dst at "b" end
   neg r8
+  mov [rsp-8], rsi      # [RSP-8] = "a" end ptr
   mov [rsp-16], r8      # [RSP-16] = negative bytes in "b"
   mov rbx, r8           # RBX = negative bytes in "b"
 
-.p2align 4
 L_mul_nat_outer_loop:
   mov r12, [rbp]
   mov r13, [rbp+8]
@@ -131,7 +124,6 @@ L_mul_nat_outer_loop:
   xor r10d, r10d
   xor r11d, r11d
 
-.p2align 4
 L_mul_nat_inner_loop:
   # Unroll [0]
 
@@ -210,11 +202,11 @@ L_mul_nat_inner_loop:
   add rbp, 32
   add rdi, 32
 
-  cmp rbp, rsi
+  cmp ebp, esi
   jne L_mul_nat_outer_loop
 
+  vzeroupper
   xor eax, eax
-
   pop r15
   pop r14
   pop r13
