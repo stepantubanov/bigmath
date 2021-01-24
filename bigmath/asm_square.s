@@ -33,25 +33,25 @@ __ZN7bigmath8internal10square_natEPNS_7place_tEPKS1_m:
 
   lea eax, [ecx+ecx-64]
   test eax, eax
-  jz .L_square_nat_skip_zero_loop
+  jz L_square_nat_skip_zero_loop
 
   neg rax
   add r8, 31
   and r8, -32
 
 .p2align 4
-.L_square_nat_zero_loop:
+L_square_nat_zero_loop:
   vmovaps [r8+rax], ymm0
   vmovaps [r8+rax+32], ymm0
   add rax, 64
-  jnz .L_square_nat_zero_loop
+  jnz L_square_nat_zero_loop
 
-.L_square_nat_skip_zero_loop:
+L_square_nat_skip_zero_loop:
   vmovaps [r12], xmm0
   vmovaps [r12+16], xmm0
   vmovups [r12+32], ymm0
 
-.L_square_nat_after_zero:
+L_square_nat_after_zero:
   # Process the top of the pyramid (A[0] * A[n-1])
 
   mulx rdx, rax, [rsi+rcx-8]    # a[0] * a[n-1]
@@ -65,7 +65,7 @@ __ZN7bigmath8internal10square_natEPNS_7place_tEPKS1_m:
   mov rbp, rdi              # RBP = Current destination address.
 
 .p2align 4
-.L_square_nat_outer_loop:
+L_square_nat_outer_loop:
   mov rdx, [rsi+r8-8]
 
   mov rbx, rsi
@@ -73,7 +73,7 @@ __ZN7bigmath8internal10square_natEPNS_7place_tEPKS1_m:
   xor eax, eax
 
 .p2align 4
-.L_square_nat_inner_loop:
+L_square_nat_inner_loop:
   # R8 = outer loop index
   # ECX = inner loop index [-n to -2]
   # RAX, CF = carry
@@ -118,7 +118,7 @@ __ZN7bigmath8internal10square_natEPNS_7place_tEPKS1_m:
 
 
   dec ecx
-  jnz .L_square_nat_inner_loop
+  jnz L_square_nat_inner_loop
 
   mulx r12, r11, [rbx]      # Compute the last product.
 
@@ -132,7 +132,7 @@ __ZN7bigmath8internal10square_natEPNS_7place_tEPKS1_m:
 
   inc r9d
   sub r8d, 16
-  jnz .L_square_nat_outer_loop
+  jnz L_square_nat_outer_loop
 
   add rdi, 8      # RDI to the starting position
 
@@ -142,7 +142,7 @@ __ZN7bigmath8internal10square_natEPNS_7place_tEPKS1_m:
   xor r8d, r8d
 
 .p2align 4
-.L_square_nat_square_loop:
+L_square_nat_square_loop:
   mov rdx, [rsi]
   mov rbx, [rdi]
   mov rcx, [rdi+8]
@@ -179,7 +179,7 @@ __ZN7bigmath8internal10square_natEPNS_7place_tEPKS1_m:
   lea rdi, [rdi+32]
 
   dec r9d
-  jnz .L_square_nat_square_loop
+  jnz L_square_nat_square_loop
 
   vzeroupper
   pop r13

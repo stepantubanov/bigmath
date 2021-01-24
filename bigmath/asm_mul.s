@@ -7,48 +7,52 @@
 #
 #  rdi: res
 #  rsi: nat
-#  rdx: nat_size (< 32 bit)
+#  rdx: nat_size (< 2 ** 32)
 #  rcx: word
 #
 .p2align 4
 .global __ZN7bigmath8internal8mul_wordEPNS_7place_tEPKS1_mm
 __ZN7bigmath8internal8mul_wordEPNS_7place_tEPKS1_mm:
-  xchg rcx, rdx
+  mov r8d, edx
+  mov rdx, rcx
+  mov ecx, r8d
   xor eax, eax
 
 .p2align 4
-.L_mul_word_loop:
+L_mul_word_loop:
   mulx r9, r8, [rsi]
-  adc r8, rax
-  mulx rax, r10, [rsi+8]
-  adc r9, r10
+  add r8, rax
   mov [rdi], r8
+  mulx rax, r8, [rsi+8]
+  adc r9, r8
   mov [rdi+8], r9
 
   mulx r9, r8, [rsi+16]
   adc r8, rax
-  mulx rax, r10, [rsi+24]
-  adc r9, r10
   mov [rdi+16], r8
+  mulx rax, r8, [rsi+24]
+  adc r9, r8
   mov [rdi+24], r9
 
-  lea rdi, [rdi+32]
-  lea rsi, [rsi+32]
+  adc rax, 0
+  add rdi, 32
+  add rsi, 32
 
   dec ecx
-  jnz .L_mul_word_loop
+  jnz L_mul_word_loop
 
-  adc rax, 0
-  jnz .L_mul_word_carry
+  test eax, eax
+  jnz L_mul_word_carry
   ret
 
-.L_mul_word_carry:
+L_mul_word_carry:
   xor esi, esi
   mov qword ptr [rdi], rax
   mov qword ptr [rdi+8], rsi
   mov qword ptr [rdi+16], rsi
   mov qword ptr [rdi+24], rsi
   ret
+
 
 #  u64 mul_nat(void* res, const void* nat, u64 nat_size, const void* other,
 #              u64 other_size) {
