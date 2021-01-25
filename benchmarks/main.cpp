@@ -127,21 +127,17 @@ static void nat_square(benchmark::State& state) {
   bigmath::nat_free(r);
 }
 
-BENCHMARK(nat_add_word)->Arg(2)->Arg(100);
+BENCHMARK(nat_add_word)->Arg(2);
 BENCHMARK(nat_add_nat)
     ->Args({1, 1})
     ->Args({8, 8})
-    ->Args({125, 125})
     ->Args({500, 500})
-    ->Args({1, 5})
-    ->Args({2, 60})
     ->Args({30, 500})
     ->Args({500, 30});
 BENCHMARK(nat_mul_word)->Arg(2)->Arg(100);
 BENCHMARK(nat_mul_nat)
     ->Args({1, 1})
     ->Args({4, 4})
-    ->Args({15, 10})
     ->Args({32, 32});  // 1 KiB x 1 KiB
 BENCHMARK(nat_square)->Arg(1)->Arg(32);
 BENCHMARK_MAIN();

@@ -19,20 +19,20 @@ __ZN7bigmath8internal11compare_natEPKNS_7place_tES3_m:
   xor eax, eax
 
 .p2align 4
-.L_compare_nat_loop:
+L_compare_nat_loop:
   vmovups ymm0, [rdi+rdx]
   vpcmpeqb ymm1, ymm0, [rsi+rdx]
   vpmovmskb ecx, ymm1
   xor ecx, -1
-  jnz .L_compare_nat_finish
+  jnz L_compare_nat_finish
 
   add rdx, 32
-  jnz .L_compare_nat_loop
+  jnz L_compare_nat_loop
 
   vzeroupper
   ret
 
-.L_compare_nat_finish:
+L_compare_nat_finish:
   tzcnt ecx, ecx
   add rdx, rcx
   movzx eax, byte ptr [rdi+rdx]

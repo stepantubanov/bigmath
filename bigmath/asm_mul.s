@@ -18,8 +18,9 @@ __ZN7bigmath8internal8mul_wordEPNS_7place_tEPKS1_mm:
   mov ecx, r8d
   xor eax, eax
 
-.p2align 4
-L_mul_word_loop:
+  shr ecx
+  jnc L_mul_word_loop
+
   mulx r9, r8, [rsi]
   add r8, rax
   mov [rdi], r8
@@ -38,9 +39,50 @@ L_mul_word_loop:
   add rdi, 32
   add rsi, 32
 
+  test ecx, ecx
+  jz L_mul_word_skip_loop
+
+.p2align 4
+L_mul_word_loop:
+  mulx r9, r8, [rsi]
+  adc r8, rax           # Mystery to me, but if we change this to "add" (which
+                        # we can do since we preserve CF via "adc rax, 0" below)
+                        # the performance suffers significantly and
+                        # consistently (reproducible every time).
+  mov [rdi], r8
+  mulx rax, r8, [rsi+8]
+  adc r9, r8
+  mov [rdi+8], r9
+
+  mulx r9, r8, [rsi+16]
+  adc r8, rax
+  mov [rdi+16], r8
+  mulx rax, r8, [rsi+24]
+  adc r9, r8
+  mov [rdi+24], r9
+
+  mulx r9, r8, [rsi+32]
+  adc r8, rax
+  mov [rdi+32], r8
+  mulx rax, r8, [rsi+40]
+  adc r9, r8
+  mov [rdi+40], r9
+
+  mulx r9, r8, [rsi+48]
+  adc r8, rax
+  mov [rdi+48], r8
+  mulx rax, r8, [rsi+56]
+  adc r9, r8
+  mov [rdi+56], r9
+
+  adc rax, 0
+  add rsi, 64
+  add rdi, 64
+
   dec ecx
   jnz L_mul_word_loop
 
+L_mul_word_skip_loop:
   test eax, eax
   jnz L_mul_word_carry
   ret
@@ -52,7 +94,6 @@ L_mul_word_carry:
   mov qword ptr [rdi+16], rsi
   mov qword ptr [rdi+24], rsi
   ret
-
 
 #  u64 mul_nat(void* res, const void* nat, u64 nat_size, const void* other,
 #              u64 other_size) {

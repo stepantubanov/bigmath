@@ -1,62 +1,47 @@
-Date: 2021-01-19 20:00:47 +0300
+Date: 2021-01-25 19:47:22 +0300
 
 Aggregate (min/median/max):
 
-nat_add_word/2                13     13     13
-
-nat_add_word/100              13     13     13
+nat_add_word/2                12     12     12
 
 nat_add_nat/1/1                5      5      5
 
-nat_add_nat/8/8               19     20     20
+nat_add_nat/8/8               19     19     19
 
-nat_add_nat/125/125          271    275    276
+nat_add_nat/500/500         1085   1107   1111
 
-nat_add_nat/500/500         1092   1110   1172
+nat_add_nat/30/500           236    260    414
 
-nat_add_nat/1/5                8      8      9
+nat_add_nat/500/30            65     66     66
 
-nat_add_nat/2/60              29     32     33
+nat_mul_word/2                54     55     55
 
-nat_add_nat/30/500           252    259    418
+nat_mul_word/100            1937   2004   2012
 
-nat_add_nat/500/30            65     67     69
+nat_mul_nat/1/1               19     19     19
 
-nat_mul_word/2                55     57     62
+nat_mul_nat/4/4              189    191    192
 
-nat_mul_word/100            1936   1982   2005
-
-nat_mul_nat/1/1               19     19     20
-
-nat_mul_nat/4/4              190    193    195
-
-nat_mul_nat/15/10           1920   1986   2094
-
-nat_mul_nat/32/32          13185  13893  13998
+nat_mul_nat/32/32          13139  13185  13446
 
 nat_square/1                  20     20     20
 
-nat_square/32               5809   5835   5862
+nat_square/32               6392   6485   6488
 
 
 
 Repetitions:
 
-nat_add_word/2            13  13  13  13
-nat_add_word/100          13  13  13  13
+nat_add_word/2            12  12  12  12
 nat_add_nat/1/1           5  5  5  5
-nat_add_nat/8/8           19  19  20  20
-nat_add_nat/125/125       271  273  275  276
-nat_add_nat/500/500       1092  1104  1110  1172
-nat_add_nat/1/5           8  8  8  9
-nat_add_nat/2/60          29  29  32  33
-nat_add_nat/30/500        252  258  259  418
-nat_add_nat/500/30        65  67  67  69
-nat_mul_word/2            55  57  57  62
-nat_mul_word/100          1936  1937  1982  2005
-nat_mul_nat/1/1           19  19  19  20
-nat_mul_nat/4/4           190  192  193  195
-nat_mul_nat/15/10         1920  1922  1986  2094
-nat_mul_nat/32/32         13185  13424  13893  13998
+nat_add_nat/8/8           19  19  19  19
+nat_add_nat/500/500       1085  1085  1107  1111
+nat_add_nat/30/500        236  258  260  414
+nat_add_nat/500/30        65  65  66  66
+nat_mul_word/2            54  54  55  55
+nat_mul_word/100          1937  1968  2004  2012
+nat_mul_nat/1/1           19  19  19  19
+nat_mul_nat/4/4           189  189  191  192
+nat_mul_nat/32/32         13139  13154  13185  13446
 nat_square/1              20  20  20  20
-nat_square/32             5809  5828  5835  5862
+nat_square/32             6392  6411  6485  6488
